@@ -1,0 +1,40 @@
+CREATE TABLE IF NOT EXISTS `memory_cards` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `source_text` TEXT NOT NULL,
+    `normalized_text` TEXT NOT NULL,
+    `content_type` VARCHAR(32) NOT NULL,
+    `memory_style` VARCHAR(32) NOT NULL,
+    `card_payload` JSON NOT NULL,
+    `image_url` TEXT NULL,
+    `image_storage_key` VARCHAR(512) NULL,
+    `next_review_at` DATETIME NULL,
+    `review_stage` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `memory_cards_user_created_index` (`user_id`, `created_at`),
+    KEY `memory_cards_user_review_index` (`user_id`, `next_review_at`),
+    CONSTRAINT `memory_cards_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ai_generation_jobs` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `memory_card_id` BIGINT UNSIGNED NULL,
+    `request_payload` JSON NOT NULL,
+    `provider_payload` JSON NULL,
+    `status` VARCHAR(32) NOT NULL DEFAULT 'queued',
+    `error_code` VARCHAR(64) NULL,
+    `error_message` TEXT NULL,
+    `attempts` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `started_at` DATETIME NULL,
+    `completed_at` DATETIME NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `ai_jobs_user_created_index` (`user_id`, `created_at`),
+    KEY `ai_jobs_status_created_index` (`status`, `created_at`),
+    CONSTRAINT `ai_jobs_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `ai_jobs_card_fk` FOREIGN KEY (`memory_card_id`) REFERENCES `memory_cards` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
