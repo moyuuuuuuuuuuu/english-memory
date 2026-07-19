@@ -35,7 +35,11 @@ final class MemoryCardViewBusinessTest extends TestCase
             'memory_style' => 'auto',
             'is_favorite' => 1,
             'card_payload' => json_encode(['word' => 'ambition'], JSON_THROW_ON_ERROR),
-            'review_stage' => 0,
+            'first_reviewed_at' => '2026-07-18 01:02:03',
+            'last_reviewed_at' => '2026-07-19 04:05:06',
+            'review_count' => 3,
+            'next_review_at' => '2026-07-20 04:05:06',
+            'review_stage' => 2,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -91,6 +95,11 @@ final class MemoryCardViewBusinessTest extends TestCase
         self::assertTrue($view['card']['is_favorite']);
         self::assertSame(2, $view['card']['content_version']);
         self::assertSame(4, $view['card']['sync_version']);
+        self::assertSame('2026-07-18 01:02:03', $view['card']['first_reviewed_at']);
+        self::assertSame('2026-07-19 04:05:06', $view['card']['last_reviewed_at']);
+        self::assertSame(3, $view['card']['review_count']);
+        self::assertSame(2, $view['card']['review_stage']);
+        self::assertSame('2026-07-20 04:05:06', $view['card']['next_review_at']);
         self::assertSame(['Career', 'Dream'], array_column($view['card']['tags'], 'name'));
         self::assertSame('completed', $view['job']['status']);
         self::assertStringNotContainsString('secret', json_encode($view, JSON_THROW_ON_ERROR));

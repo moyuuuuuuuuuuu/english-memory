@@ -47,6 +47,9 @@ final class GetSyncChangesControllerTest extends TestCase
         self::assertSame(4, $data['next_cursor']);
         self::assertFalse($data['has_more']);
         self::assertSame($activeCard, $data['changes']['cards'][0]['card']['id']);
+        self::assertArrayHasKey('first_reviewed_at', $data['changes']['cards'][0]['card']);
+        self::assertArrayHasKey('last_reviewed_at', $data['changes']['cards'][0]['card']);
+        self::assertSame(0, $data['changes']['cards'][0]['card']['review_count']);
         self::assertSame([
             'id' => $deletedCard,
             'content_version' => 2,
