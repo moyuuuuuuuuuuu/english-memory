@@ -11,11 +11,13 @@ use app\services\LogPasswordResetMail;
 use app\services\TokenService;
 use app\services\SecureHttpImageDownloader;
 use app\services\SystemDnsResolver;
+use app\services\GdImageProcessor;
 use app\services\contracts\PasswordResetMail;
 use app\services\contracts\AiGenerationQueue;
 use app\services\contracts\MemoryCardGenerator;
 use app\services\contracts\DnsResolver;
 use app\services\contracts\RemoteImageDownloader;
+use app\services\contracts\ImageProcessor;
 use GuzzleHttp\Client;
 use Psr\Container\ContainerInterface;
 /**
@@ -32,6 +34,17 @@ use Psr\Container\ContainerInterface;
  */
 
 return [
+    ImageProcessor::class => static function (): ImageProcessor {
+        $image = config('image');
+
+        return new GdImageProcessor(
+            runtime_path('image-imports'),
+            $image['min_dimension'],
+            $image['max_dimension'],
+            $image['max_pixels'],
+            $image['webp_quality'],
+        );
+    },
     DnsResolver::class => static fn (): DnsResolver => new SystemDnsResolver(),
     RemoteImageDownloader::class => static function (ContainerInterface $container): RemoteImageDownloader {
         $image = config('image');
