@@ -68,6 +68,8 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
         self::assertSame('memory-cards/test-large.webp', $card['image_storage_key']);
         self::assertSame('resilient', json_decode($card['card_payload'], true, 512, JSON_THROW_ON_ERROR)['word']);
         self::assertStringNotContainsString('example.test', json_encode($card, JSON_THROW_ON_ERROR));
+        self::assertGreaterThan(0, (int) $card['sync_version']);
+        self::assertSame((int) $card['sync_version'], (int) Db::table('users')->where('id', $this->userId)->value('sync_version'));
     }
 
     public function test_provider_declared_failure_becomes_terminal_without_raw_error(): void
@@ -176,6 +178,40 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
         self::assertSame('resilient', json_decode($card['card_payload'], true, 512, JSON_THROW_ON_ERROR)['word']);
         self::assertNull($card['image_url']);
         self::assertStringNotContainsString('example.test', (string) $job['provider_payload']);
+    }
+
+    public function test_regeneration_image_failure_preserves_old_visible_card_and_clears_pending_payload(): void
+    {
+        [$cardId, $jobId] = $this->createJob('regeneration-image-failure');
+        Db::table('memory_cards')->where('id', $cardId)->update([
+            'card_payload' => json_encode(['word' => 'old-word', 'story' => 'old story'], JSON_THROW_ON_ERROR),
+            'normalized_text' => 'old-word',
+            'image_url' => 'http://e.test/storage/old.webp',
+            'image_storage_key' => 'old.webp',
+        ]);
+        Db::table('ai_generation_jobs')->where('id', $jobId)->update(['operation' => 'regenerate']);
+        $failure = new ImageImportException(
+            BusinessCode::ImageDownloadFailed,
+            'image_download',
+            '图片下载失败，请手动重试。',
+        );
+
+        (new ProcessAiGenerationJobBusiness(
+            new WorkerGenerator(AiGenerationResultEntity::success(
+                $this->validCard(),
+                'https://example.test/temporary-card.png',
+                'execute-regeneration-failure',
+            )),
+            $this->imageImporter($failure),
+        ))->process($jobId);
+
+        $card = (array) Db::table('memory_cards')->where('id', $cardId)->first();
+        $job = $this->job($jobId);
+        self::assertSame('failed', $job['status']);
+        self::assertNull($job['pending_card_payload']);
+        self::assertSame('old-word', $card['normalized_text']);
+        self::assertSame('old-word', json_decode($card['card_payload'], true, 512, JSON_THROW_ON_ERROR)['word']);
+        self::assertSame('http://e.test/storage/old.webp', $card['image_url']);
     }
 
     private function createJob(string $key = 'worker-job', string $status = 'queued'): array

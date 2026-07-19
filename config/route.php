@@ -24,6 +24,7 @@ use app\businesses\ListTagsBusiness;
 use app\businesses\RenameTagBusiness;
 use app\businesses\DeleteTagBusiness;
 use app\businesses\RetryMemoryCardBusiness;
+use app\businesses\RegenerateMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
 use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
@@ -41,6 +42,7 @@ use app\controllers\ListTagsController;
 use app\controllers\RenameTagController;
 use app\controllers\DeleteTagController;
 use app\controllers\RetryMemoryCardController;
+use app\controllers\RegenerateMemoryCardController;
 use app\controllers\ForgotPasswordController;
 use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
@@ -121,6 +123,12 @@ Route::delete('/api/memory-cards/{id}', static function (Request $request, strin
 
 Route::post('/api/memory-cards/{id}/retry', static function (Request $request, string $id) {
     return (new RetryMemoryCardController(new RetryMemoryCardBusiness(
+        Container::get(AiGenerationQueue::class),
+    )))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::post('/api/memory-cards/{id}/regenerate', static function (Request $request, string $id) {
+    return (new RegenerateMemoryCardController(new RegenerateMemoryCardBusiness(
         Container::get(AiGenerationQueue::class),
     )))($request, $id);
 })->middleware([Authenticate::class]);

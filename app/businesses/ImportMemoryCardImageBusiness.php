@@ -13,6 +13,7 @@ use app\entities\StoredImageSetEntity;
 use app\models\AiGenerationJob;
 use app\models\MemoryCard;
 use app\models\MemoryCardImage;
+use app\models\User;
 use app\services\contracts\ImageProcessor;
 use app\services\contracts\ImageStorage;
 use app\services\contracts\RemoteImageDownloader;
@@ -25,10 +26,17 @@ final class ImportMemoryCardImageBusiness
         private readonly RemoteImageDownloader $downloader,
         private readonly ImageProcessor $processor,
         private readonly ImageStorage $storage,
+        private readonly SyncVersionBusiness $syncVersions = new SyncVersionBusiness(),
     ) {
     }
 
-    public function import(int $userId, int $cardId, int $jobId, string $sourceUrl): void
+    public function import(
+        int $userId,
+        int $cardId,
+        int $jobId,
+        string $sourceUrl,
+        ?array $replacementCardPayload = null,
+    ): void
     {
         if (!$this->isImportable($userId, $cardId, $jobId)) {
             throw $this->storageFailure();
@@ -43,11 +51,14 @@ final class ImportMemoryCardImageBusiness
             $processed = $this->processor->process($downloaded);
             $stored = $this->storage->store($userId, $cardId, $processed);
 
-            $oldKeys = Db::transaction(function () use ($userId, $cardId, $jobId, $stored): array {
+            $oldKeys = Db::transaction(function () use ($userId, $cardId, $jobId, $stored, $replacementCardPayload): array {
+                /** @var User|null $user */
+                $user = User::query()->whereKey($userId)->lockForUpdate()->first();
                 /** @var MemoryCard|null $card */
                 $card = MemoryCard::query()
                     ->where('id', $cardId)
                     ->where('user_id', $userId)
+                    ->whereNull('deleted_at')
                     ->lockForUpdate()
                     ->first();
                 /** @var AiGenerationJob|null $job */
@@ -57,7 +68,10 @@ final class ImportMemoryCardImageBusiness
                     ->where('memory_card_id', $cardId)
                     ->lockForUpdate()
                     ->first();
-                if ($card === null || $job === null || $job->status !== AiGenerationStatus::GeneratingImage->value) {
+                if ($user === null || $card === null || $job === null || $job->status !== AiGenerationStatus::GeneratingImage->value) {
+                    throw $this->storageFailure();
+                }
+                if ($replacementCardPayload !== null && (string) $job->operation !== 'regenerate') {
                     throw $this->storageFailure();
                 }
 
@@ -76,16 +90,24 @@ final class ImportMemoryCardImageBusiness
                     ? MemoryCardImage::query()->create($values)
                     : $existing->forceFill($values)->save();
 
-                $card->forceFill([
+                $cardValues = [
+                    'sync_version' => $this->syncVersions->nextLocked($user),
                     'image_url' => $stored->largeUrl(),
                     'image_storage_key' => $stored->largeKey(),
-                ])->save();
+                ];
+                if ($replacementCardPayload !== null) {
+                    $cardValues['normalized_text'] = (string) ($replacementCardPayload['normalized_text'] ?? $replacementCardPayload['word'] ?? '');
+                    $cardValues['card_payload'] = $replacementCardPayload;
+                    $cardValues['content_version'] = (int) $card->content_version + 1;
+                }
+                $card->forceFill($cardValues)->save();
                 $job->forceFill([
                     'status' => AiGenerationStatus::Completed->value,
                     'error_code' => null,
                     'error_message' => null,
                     'failure_type' => null,
                     'completed_at' => date('Y-m-d H:i:s'),
+                    'pending_card_payload' => null,
                 ])->save();
 
                 return $oldKeys;
@@ -111,7 +133,7 @@ final class ImportMemoryCardImageBusiness
 
     private function isImportable(int $userId, int $cardId, int $jobId): bool
     {
-        return MemoryCard::query()->where('id', $cardId)->where('user_id', $userId)->exists()
+        return MemoryCard::query()->where('id', $cardId)->where('user_id', $userId)->whereNull('deleted_at')->exists()
             && AiGenerationJob::query()
                 ->where('id', $jobId)
                 ->where('user_id', $userId)

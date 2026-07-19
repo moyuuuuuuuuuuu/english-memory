@@ -10,6 +10,7 @@ use app\common\exceptions\ImageImportException;
 use app\entities\AiGenerationResultEntity;
 use app\models\AiGenerationJob;
 use app\models\MemoryCard;
+use app\models\User;
 use app\services\contracts\MemoryCardGenerator;
 use support\Db;
 use Throwable;
@@ -67,26 +68,38 @@ final class ProcessAiGenerationJobBusiness
             return;
         }
 
-        $context = Db::transaction(static function () use ($jobId, $result, $cardPayload): ?array {
+        $context = Db::transaction(function () use ($jobId, $result, $cardPayload): ?array {
             /** @var AiGenerationJob|null $job */
             $job = AiGenerationJob::query()->where('id', $jobId)->lockForUpdate()->first();
             if ($job === null || $job->status !== AiGenerationStatus::GeneratingText->value) {
                 return null;
             }
 
-            $updated = MemoryCard::query()
+            $isRegeneration = (string) $job->operation === 'regenerate';
+            /** @var User|null $user */
+            $user = User::query()->whereKey((int) $job->user_id)->lockForUpdate()->first();
+            /** @var MemoryCard|null $card */
+            $card = MemoryCard::query()
                 ->where('id', (int) $job->memory_card_id)
                 ->where('user_id', (int) $job->user_id)
-                ->update([
+                ->whereNull('deleted_at')
+                ->lockForUpdate()
+                ->first();
+            if ($user === null || $card === null) {
+                return null;
+            }
+            if (!$isRegeneration) {
+                $version = (new SyncVersionBusiness())->nextLocked($user);
+                $card->forceFill([
+                    'sync_version' => $version,
                     'normalized_text' => (string) ($cardPayload['normalized_text'] ?? $cardPayload['word']),
                     'card_payload' => $cardPayload,
-                ]);
-            if ($updated !== 1) {
-                return null;
+                ])->save();
             }
 
             $job->forceFill([
                 'provider_payload' => ['execute_id' => $result->executeId()],
+                'pending_card_payload' => $isRegeneration ? $cardPayload : null,
                 'status' => AiGenerationStatus::GeneratingImage->value,
                 'error_code' => null,
                 'error_message' => null,
@@ -97,6 +110,7 @@ final class ProcessAiGenerationJobBusiness
             return [
                 'user_id' => (int) $job->user_id,
                 'card_id' => (int) $job->memory_card_id,
+                'replacement_card_payload' => $isRegeneration ? $cardPayload : null,
             ];
         });
 
@@ -110,6 +124,7 @@ final class ProcessAiGenerationJobBusiness
                 $context['card_id'],
                 $jobId,
                 $result->imageUrl(),
+                $context['replacement_card_payload'],
             );
         } catch (ImageImportException $exception) {
             $this->fail(
@@ -185,6 +200,7 @@ final class ProcessAiGenerationJobBusiness
             'error_message' => $safeMessage,
             'failure_type' => $failureType,
             'completed_at' => date('Y-m-d H:i:s'),
+            'pending_card_payload' => null,
         ];
         if ($clearProviderPayload) {
             $values['provider_payload'] = null;
