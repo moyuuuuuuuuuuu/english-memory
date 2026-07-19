@@ -35,4 +35,11 @@ final class DatabaseMigrationContractTest extends TestCase
     {
         self::assertFileExists(dirname(__DIR__, 2) . '/scripts/migrate.php');
     }
+
+    public function test_async_generation_changes_are_in_a_new_forward_migration(): void
+    {
+        self::assertFileExists(
+            dirname(__DIR__, 2) . '/database/migrations/0005_extend_ai_generation_jobs_for_async.sql',
+        );
+    }
 }
