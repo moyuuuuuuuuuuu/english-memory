@@ -1,12 +1,17 @@
 <?php
 
 use app\middleware\Authenticate;
+use app\businesses\ProcessAiGenerationJobBusiness;
+use app\processes\AiGenerationWorker;
+use app\services\CozeWorkflowService;
 use app\services\RedisAccessTokenStore;
 use app\services\RedisStreamAiGenerationQueue;
 use app\services\LogPasswordResetMail;
 use app\services\TokenService;
 use app\services\contracts\PasswordResetMail;
 use app\services\contracts\AiGenerationQueue;
+use app\services\contracts\MemoryCardGenerator;
+use GuzzleHttp\Client;
 use Psr\Container\ContainerInterface;
 /**
  * This file is part of webman.
@@ -22,7 +27,27 @@ use Psr\Container\ContainerInterface;
  */
 
 return [
+    MemoryCardGenerator::class => static function (): MemoryCardGenerator {
+        $coze = config('coze');
+
+        return new CozeWorkflowService(
+            new Client(),
+            $coze['api_base'],
+            $coze['workflow_id'],
+            $coze['access_token'],
+            $coze['timeout'],
+        );
+    },
     AiGenerationQueue::class => static fn (): AiGenerationQueue => new RedisStreamAiGenerationQueue(),
+    ProcessAiGenerationJobBusiness::class => static fn (ContainerInterface $container): ProcessAiGenerationJobBusiness => new ProcessAiGenerationJobBusiness(
+        $container->get(MemoryCardGenerator::class),
+    ),
+    AiGenerationWorker::class => static fn (ContainerInterface $container): AiGenerationWorker => new AiGenerationWorker(
+        $container->get(AiGenerationQueue::class),
+        $container->get(ProcessAiGenerationJobBusiness::class),
+        (int) config('ai_generation.claim_idle_ms', 60000),
+        (int) config('ai_generation.block_ms', 5000),
+    ),
     PasswordResetMail::class => static fn (): PasswordResetMail => new LogPasswordResetMail(),
     TokenService::class => static fn (): TokenService => new TokenService(
         new RedisAccessTokenStore(),
