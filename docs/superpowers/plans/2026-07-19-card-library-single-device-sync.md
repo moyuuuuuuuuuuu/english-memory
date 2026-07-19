@@ -528,7 +528,7 @@ git commit -m "feat: add incremental card sync"
 **Interfaces:**
 - Produces verified Stage 5 handoff and the Stage 6 review-system entry point.
 
-- [ ] **Step 1: Run deterministic verification**
+- [x] **Step 1: Run deterministic verification**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-5-card-library php82 php scripts/migrate.php
@@ -542,11 +542,11 @@ git diff --check
 
 Syntax-check every changed PHP file and scan tracked files for PATs, bearer values, Coze temporary URLs in persistence/API code, and local temporary paths in Entities/Controllers.
 
-- [ ] **Step 2: Merge locally and restart Webman**
+- [x] **Step 2: Merge locally and restart Webman**
 
 Use `superpowers:finishing-a-development-branch`. After merge, restart from `/www/english-memory` and require consumer, compensation, webman, and monitor exit counts to remain zero.
 
-- [ ] **Step 3: Run controlled HTTP smoke without Coze**
+- [x] **Step 3: Run controlled HTTP smoke without Coze**
 
 Create one temporary user/card fixture through application Businesses, then use HTTP to:
 
@@ -559,11 +559,11 @@ Create one temporary user/card fixture through application Businesses, then use 
 
 Do not call Coze unless Task 8 changed provider request/response behavior beyond operation orchestration.
 
-- [ ] **Step 4: Update handoff with exact evidence**
+- [x] **Step 4: Update handoff with exact evidence**
 
 Record migration `0007`, final test/assertion count, routes, session replacement result, pagination/sync cursor evidence, tombstone/image cleanup result, Worker status, branch state, and the next Stage 6 task.
 
-- [ ] **Step 5: Commit docs and run fresh final verification**
+- [x] **Step 5: Commit docs and run fresh final verification**
 
 ```bash
 git add PROJECT_PLAN.md docs/superpowers/plans/2026-07-19-card-library-single-device-sync.md
@@ -571,3 +571,13 @@ git commit -m "docs: complete card library sync handoff"
 docker exec -w /www/english-memory php82 ./vendor/bin/phpunit
 git status --short --branch
 ```
+
+### Verified handoff evidence
+
+- Merged `codex/stage-5-card-library` into local `master`; the feature worktree and branch were removed after merged-result tests passed.
+- Migration `0007_add_card_library_and_sync.sql` was applied previously and skipped cleanly on two consecutive verification runs.
+- Final deterministic baseline before this documentation commit: 156 tests, 724 assertions; 64 changed PHP files passed `php -l`; `git diff --check` and tracked secret/temporary-URL scans were clean.
+- Runtime checks: Composer configuration valid with the existing empty-prefix PSR-4 performance warning; Redis returned `PONG`; `nginx -t` succeeded.
+- After a main-directory Webman restart, ai-generation-consumer, ai-generation-compensation, webman, and monitor all reported exit status/count `0/0`.
+- Controlled HTTP smoke did not call Coze. Device replacement returned old/new session statuses `401/200`; list/edit/favorite/tag normalization, tag rename/delete, cursor-zero plus delta sync, card deletion tombstone, and owned image metadata cleanup all succeeded. The smoke account was removed.
+- Stage 6 starts with the review queue and idempotent answer-submission contract, followed by scheduling state transitions and timezone boundary tests.

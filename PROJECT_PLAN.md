@@ -134,10 +134,10 @@ Route -> Controller -> Business -> Service / Model
 
 ### 阶段 5：卡片库与跨设备同步
 
-- [ ] 卡片列表、详情、编辑、收藏、标签、重新生成和软删除。
-- [ ] 游标分页、搜索与状态筛选。
-- [ ] 增加单调递增版本号、删除墓碑和增量同步游标。
-- [ ] 多设备冲突必须显式返回双方元数据，禁止静默覆盖。
+- [x] 卡片列表、详情、编辑、收藏、标签、原子重新生成和软删除。
+- [x] 游标分页、搜索与内容类型、收藏、标签、生成状态筛选。
+- [x] 增加用户级单调版本、卡片/标签/关系墓碑和完整版本批次增量同步。
+- [x] 用户限制为单活设备；内容版本冲突返回最新服务端卡片，禁止静默覆盖。
 
 ### 阶段 6：间隔复习与游戏数据
 
@@ -212,6 +212,10 @@ curl -X POST http://e.test/api/memory-cards \
 
 ## 8. 当前交接点
 
-阶段 4 已合并到本地 `master`，迁移 `0006` 已应用，完整基线为 116 tests、472 assertions。真实扣子图片导入、Nginx 静态访问、校验和、尺寸和清理均已验证；当前没有阶段 4 功能分支。
+阶段 5 已于 2026-07-19 合并到本地 `master`，迁移 `0007_add_card_library_and_sync.sql` 已应用且连续执行两次均幂等跳过。完整基线为 156 tests、724 assertions；64 个阶段变更 PHP 文件语法检查通过，Composer 配置有效，Redis `PONG`，Nginx 配置检查通过，敏感信息扫描无命中。
 
-下一次开发从“阶段 5：卡片库与跨设备同步”开始：先设计卡片列表/编辑/收藏/标签/软删除的数据合同与迁移，并在删除卡片的 Business 中调用 `DeleteStoredMemoryCardImagesBusiness`。账户级隐私删除接线保留在阶段 9，用户级 AI 限流也继续在阶段 9 统一实现。
+新增认证接口行为包括单活设备会话替换；卡片库接口包括 `GET /api/memory-cards`、`GET/PATCH/DELETE /api/memory-cards/{id}`、`POST /api/memory-cards/{id}/regenerate`；标签接口包括 `GET/PATCH/DELETE /api/tags/{id}`（列表为 `GET /api/tags`）；同步入口为 `GET /api/sync/changes`。卡片分页使用稳定 keyset 游标，同步按完整 `sync_version` 批次返回，单个版本不会被 limit 拆开。
+
+无 Coze HTTP 烟测已验证：设备 B 登录后设备 A 返回 401、设备 B 返回 200；列表、编辑、收藏、规范化标签、标签重命名/删除、从游标 0 开始的两段增量同步、卡片墓碑均成功；删除后 `memory_card_images` 数量为 0，临时账户已清理。Webman 重启后 ai-generation-consumer、ai-generation-compensation、webman、monitor 的 `exit_status` 和 `exit_count` 均为 0。
+
+下一次开发从“阶段 6：间隔复习与游戏数据”开始，先定义今日复习队列、答案提交幂等合同、复习调度状态转移和时区边界测试。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
