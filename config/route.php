@@ -23,6 +23,7 @@ use app\businesses\DeleteStoredMemoryCardImagesBusiness;
 use app\businesses\ListTagsBusiness;
 use app\businesses\RenameTagBusiness;
 use app\businesses\DeleteTagBusiness;
+use app\businesses\GetSyncChangesBusiness;
 use app\businesses\RetryMemoryCardBusiness;
 use app\businesses\RegenerateMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
@@ -41,6 +42,7 @@ use app\controllers\DeleteMemoryCardController;
 use app\controllers\ListTagsController;
 use app\controllers\RenameTagController;
 use app\controllers\DeleteTagController;
+use app\controllers\GetSyncChangesController;
 use app\controllers\RetryMemoryCardController;
 use app\controllers\RegenerateMemoryCardController;
 use app\controllers\ForgotPasswordController;
@@ -143,6 +145,10 @@ Route::patch('/api/tags/{id}', static function (Request $request, string $id) {
 
 Route::delete('/api/tags/{id}', static function (Request $request, string $id) {
     return (new DeleteTagController(new DeleteTagBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::get('/api/sync/changes', static function (Request $request) {
+    return (new GetSyncChangesController(new GetSyncChangesBusiness()))($request);
 })->middleware([Authenticate::class]);
 
 if (SyncGenerationRoutePolicy::enabled(
