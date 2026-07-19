@@ -90,6 +90,7 @@ Add a new forward-only migration `0005_extend_ai_generation_jobs_for_async.sql`.
 - `request_hash CHAR(64) NOT NULL`
 - `failure_type VARCHAR(64) NULL`
 - `parent_job_id BIGINT UNSIGNED NULL`
+- `dispatched_at DATETIME NULL`
 - a unique index on `(user_id, idempotency_key)`
 - an index on `(status, created_at)` for compensation scans
 - a self-referencing foreign key for `parent_job_id` with `ON DELETE SET NULL`
@@ -138,7 +139,7 @@ Controllers only extract HTTP values, call one Business, and map its result enti
 - one configured Consumer Group;
 - explicit message acknowledgment;
 - pending-message claiming for consumers that died;
-- an idempotent publish marker so compensation does not create unbounded duplicate messages.
+- MySQL `dispatched_at` updates after each successful publish so compensation can bound duplicate messages.
 
 The message payload contains only `job_id`. A consumer always reloads the Job from MySQL before making any decision.
 
@@ -159,7 +160,7 @@ Provider exceptions become `failed` with `AI_PROVIDER_ERROR`. Structurally inval
 
 ### Compensation process
 
-`AiGenerationCompensationProcess` periodically scans old `queued` Jobs that have no publish marker and republishes them. It only repairs dispatch gaps; it never retries a `failed` provider call.
+`AiGenerationCompensationProcess` periodically scans old `queued` Jobs whose `dispatched_at` is null or older than the configured compensation age and republishes them. It only repairs dispatch gaps; it never retries a `failed` provider call.
 
 ## Queue Failure Semantics
 
