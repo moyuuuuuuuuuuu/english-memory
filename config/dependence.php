@@ -9,9 +9,13 @@ use app\services\RedisAccessTokenStore;
 use app\services\RedisStreamAiGenerationQueue;
 use app\services\LogPasswordResetMail;
 use app\services\TokenService;
+use app\services\SecureHttpImageDownloader;
+use app\services\SystemDnsResolver;
 use app\services\contracts\PasswordResetMail;
 use app\services\contracts\AiGenerationQueue;
 use app\services\contracts\MemoryCardGenerator;
+use app\services\contracts\DnsResolver;
+use app\services\contracts\RemoteImageDownloader;
 use GuzzleHttp\Client;
 use Psr\Container\ContainerInterface;
 /**
@@ -28,6 +32,24 @@ use Psr\Container\ContainerInterface;
  */
 
 return [
+    DnsResolver::class => static fn (): DnsResolver => new SystemDnsResolver(),
+    RemoteImageDownloader::class => static function (ContainerInterface $container): RemoteImageDownloader {
+        $image = config('image');
+
+        return new SecureHttpImageDownloader(
+            new Client(),
+            $container->get(DnsResolver::class),
+            $image['source_hosts'],
+            runtime_path('image-imports'),
+            $image['connect_timeout'],
+            $image['total_timeout'],
+            $image['max_redirects'],
+            $image['max_bytes'],
+            $image['min_dimension'],
+            $image['max_dimension'],
+            $image['max_pixels'],
+        );
+    },
     MemoryCardGenerator::class => static function (): MemoryCardGenerator {
         $coze = config('coze');
 
