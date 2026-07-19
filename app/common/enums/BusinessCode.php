@@ -21,4 +21,9 @@ enum BusinessCode: string
     case CardNotFound = 'CARD_NOT_FOUND';
     case JobStateConflict = 'JOB_STATE_CONFLICT';
     case QueueUnavailable = 'QUEUE_UNAVAILABLE';
+    case ImageSourceNotAllowed = 'IMAGE_SOURCE_NOT_ALLOWED';
+    case ImageDownloadFailed = 'IMAGE_DOWNLOAD_FAILED';
+    case InvalidImage = 'INVALID_IMAGE';
+    case ImageProcessingFailed = 'IMAGE_PROCESSING_FAILED';
+    case ImageStorageFailed = 'IMAGE_STORAGE_FAILED';
 }
