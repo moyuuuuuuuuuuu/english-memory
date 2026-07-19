@@ -2,6 +2,7 @@
 
 use app\middleware\Authenticate;
 use app\businesses\ProcessAiGenerationJobBusiness;
+use app\businesses\CompensateQueuedAiJobsBusiness;
 use app\processes\AiGenerationWorker;
 use app\services\CozeWorkflowService;
 use app\services\RedisAccessTokenStore;
@@ -47,6 +48,10 @@ return [
         $container->get(ProcessAiGenerationJobBusiness::class),
         (int) config('ai_generation.claim_idle_ms', 60000),
         (int) config('ai_generation.block_ms', 5000),
+    ),
+    CompensateQueuedAiJobsBusiness::class => static fn (ContainerInterface $container): CompensateQueuedAiJobsBusiness => new CompensateQueuedAiJobsBusiness(
+        $container->get(AiGenerationQueue::class),
+        (int) config('ai_generation.compensation_age_seconds', 120),
     ),
     PasswordResetMail::class => static fn (): PasswordResetMail => new LogPasswordResetMail(),
     TokenService::class => static fn (): TokenService => new TokenService(

@@ -9,4 +9,5 @@ return [
     'block_ms' => (int) (getenv('AI_GENERATION_BLOCK_MS') ?: 5000),
     'claim_idle_ms' => (int) (getenv('AI_GENERATION_CLAIM_IDLE_MS') ?: 60000),
     'compensation_age_seconds' => (int) (getenv('AI_GENERATION_COMPENSATION_AGE_SECONDS') ?: 120),
+    'compensation_interval_seconds' => (int) (getenv('AI_GENERATION_COMPENSATION_INTERVAL_SECONDS') ?: 30),
 ];

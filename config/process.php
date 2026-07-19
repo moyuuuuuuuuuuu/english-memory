@@ -15,10 +15,22 @@
 use support\Log;
 use support\Request;
 use app\process\Http;
+use app\processes\AiGenerationConsumerProcess;
+use app\processes\AiGenerationCompensationProcess;
 
 global $argv;
 
 return [
+    'ai-generation-consumer' => [
+        'handler' => AiGenerationConsumerProcess::class,
+        'count' => 1,
+        'reloadable' => false,
+    ],
+    'ai-generation-compensation' => [
+        'handler' => AiGenerationCompensationProcess::class,
+        'count' => 1,
+        'reloadable' => false,
+    ],
     'webman' => [
         'handler' => Http::class,
         'listen' => 'http://0.0.0.0:8787',

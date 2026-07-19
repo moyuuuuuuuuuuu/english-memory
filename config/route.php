@@ -13,6 +13,7 @@
  */
 
 use app\businesses\CurrentUserBusiness;
+use app\common\base\SyncGenerationRoutePolicy;
 use app\businesses\CreateMemoryCardBusiness;
 use app\businesses\GetMemoryCardBusiness;
 use app\businesses\RetryMemoryCardBusiness;
@@ -97,16 +98,21 @@ Route::post('/api/memory-cards/{id}/retry', static function (Request $request, s
     )))($request, $id);
 })->middleware([Authenticate::class]);
 
-Route::post('/api/memory-cards/generate', static function (Request $request) {
-    $coze = config('coze');
-    $generator = new CozeWorkflowService(
-        new Client(),
-        $coze['api_base'],
-        $coze['workflow_id'],
-        $coze['access_token'],
-        $coze['timeout'],
-    );
-    $business = new GenerateMemoryCardBusiness($generator);
-    $controller = new GenerateMemoryCardController($business);
-    return $controller($request);
-});
+if (SyncGenerationRoutePolicy::enabled(
+    (string) (getenv('APP_ENV') ?: 'production'),
+    getenv('ENABLE_SYNC_GENERATION') ?: false,
+)) {
+    Route::post('/api/memory-cards/generate', static function (Request $request) {
+        $coze = config('coze');
+        $generator = new CozeWorkflowService(
+            new Client(),
+            $coze['api_base'],
+            $coze['workflow_id'],
+            $coze['access_token'],
+            $coze['timeout'],
+        );
+        $business = new GenerateMemoryCardBusiness($generator);
+        $controller = new GenerateMemoryCardController($business);
+        return $controller($request);
+    });
+}
