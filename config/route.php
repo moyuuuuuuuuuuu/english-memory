@@ -26,6 +26,7 @@ use app\businesses\RenameTagBusiness;
 use app\businesses\DeleteTagBusiness;
 use app\businesses\GetSyncChangesBusiness;
 use app\businesses\GetTodayReviewsBusiness;
+use app\businesses\GetStatsOverviewBusiness;
 use app\businesses\SubmitReviewAnswerBusiness;
 use app\businesses\RetryMemoryCardBusiness;
 use app\businesses\RegenerateMemoryCardBusiness;
@@ -48,6 +49,7 @@ use app\controllers\RenameTagController;
 use app\controllers\DeleteTagController;
 use app\controllers\GetSyncChangesController;
 use app\controllers\GetTodayReviewsController;
+use app\controllers\GetStatsOverviewController;
 use app\controllers\SubmitReviewAnswerController;
 use app\controllers\RetryMemoryCardController;
 use app\controllers\RegenerateMemoryCardController;
@@ -85,6 +87,10 @@ Route::get('/api/auth/me', static function (Request $request) {
 
 Route::patch('/api/auth/me/timezone', static function (Request $request) {
     return (new UpdateTimezoneController(new UpdateTimezoneBusiness()))($request);
+})->middleware([Authenticate::class]);
+
+Route::get('/api/stats/overview', static function (Request $request) {
+    return (new GetStatsOverviewController(new GetStatsOverviewBusiness()))($request);
 })->middleware([Authenticate::class]);
 
 Route::post('/api/auth/refresh', static function (Request $request) {
