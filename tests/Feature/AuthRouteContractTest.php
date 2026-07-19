@@ -46,4 +46,13 @@ final class AuthRouteContractTest extends TestCase
         self::assertStringContainsString("Route::post('/api/auth/reset-password'", $routeConfig);
         self::assertStringContainsString('PasswordResetMail::class', $dependencies);
     }
+
+    public function test_async_memory_card_creation_route_is_authenticated(): void
+    {
+        $routeConfig = file_get_contents(dirname(__DIR__, 2) . '/config/route.php');
+
+        self::assertStringContainsString("Route::post('/api/memory-cards'", $routeConfig);
+        self::assertStringContainsString('CreateMemoryCardController', $routeConfig);
+        self::assertGreaterThanOrEqual(3, substr_count($routeConfig, '->middleware([Authenticate::class])'));
+    }
 }

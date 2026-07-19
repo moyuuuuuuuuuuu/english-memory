@@ -13,6 +13,7 @@
  */
 
 use app\businesses\CurrentUserBusiness;
+use app\businesses\CreateMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
 use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
@@ -21,6 +22,7 @@ use app\businesses\LogoutBusiness;
 use app\businesses\RefreshSessionBusiness;
 use app\businesses\ResetPasswordBusiness;
 use app\controllers\CurrentUserController;
+use app\controllers\CreateMemoryCardController;
 use app\controllers\ForgotPasswordController;
 use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
@@ -32,6 +34,7 @@ use app\middleware\Authenticate;
 use app\services\CozeWorkflowService;
 use app\services\TokenService;
 use app\services\contracts\PasswordResetMail;
+use app\services\contracts\AiGenerationQueue;
 use GuzzleHttp\Client;
 use support\Container;
 use support\Request;
@@ -73,6 +76,12 @@ Route::post('/api/auth/forgot-password', static function (Request $request) {
 Route::post('/api/auth/reset-password', static function (Request $request) {
     return (new ResetPasswordController(new ResetPasswordBusiness()))($request);
 });
+
+Route::post('/api/memory-cards', static function (Request $request) {
+    return (new CreateMemoryCardController(new CreateMemoryCardBusiness(
+        Container::get(AiGenerationQueue::class),
+    )))($request);
+})->middleware([Authenticate::class]);
 
 Route::post('/api/memory-cards/generate', static function (Request $request) {
     $coze = config('coze');
