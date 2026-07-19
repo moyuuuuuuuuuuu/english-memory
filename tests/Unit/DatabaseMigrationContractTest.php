@@ -20,6 +20,8 @@ final class DatabaseMigrationContractTest extends TestCase
             ['daily_learning_stats'],
             ['password_reset_tokens'],
             ['memory_card_images'],
+            ['tags'],
+            ['memory_card_tags'],
         ];
     }
 
@@ -41,6 +43,13 @@ final class DatabaseMigrationContractTest extends TestCase
     {
         self::assertFileExists(
             dirname(__DIR__, 2) . '/database/migrations/0005_extend_ai_generation_jobs_for_async.sql',
+        );
+    }
+
+    public function test_card_library_changes_are_in_a_new_forward_migration(): void
+    {
+        self::assertFileExists(
+            dirname(__DIR__, 2) . '/database/migrations/0007_add_card_library_and_sync.sql',
         );
     }
 }

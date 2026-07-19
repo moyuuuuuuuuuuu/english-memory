@@ -16,10 +16,15 @@ final class RefreshToken extends Model
         'user_id',
         'token_hash',
         'device_name',
+        'session_version',
         'expires_at',
         'revoked_at',
         'created_at',
     ];
 
     protected $hidden = ['token_hash'];
+
+    protected $casts = [
+        'session_version' => 'integer',
+    ];
 }

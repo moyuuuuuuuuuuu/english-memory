@@ -33,6 +33,11 @@ final class BusinessCodeTest extends TestCase
             'INVALID_IMAGE',
             'IMAGE_PROCESSING_FAILED',
             'IMAGE_STORAGE_FAILED',
+            'CARD_VERSION_CONFLICT',
+            'CARD_DELETED',
+            'INVALID_CURSOR',
+            'TAG_NOT_FOUND',
+            'TAG_NAME_CONFLICT',
         ], array_column(BusinessCode::cases(), 'value'));
     }
 

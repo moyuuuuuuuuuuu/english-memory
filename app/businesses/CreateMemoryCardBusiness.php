@@ -9,6 +9,7 @@ use app\common\enums\BusinessCode;
 use app\entities\AsyncMemoryCardResultEntity;
 use app\models\AiGenerationJob;
 use app\models\MemoryCard;
+use app\models\User;
 use app\services\contracts\AiGenerationQueue;
 use Illuminate\Database\UniqueConstraintViolationException;
 use stdClass;
@@ -20,8 +21,13 @@ final class CreateMemoryCardBusiness
     private const CONTENT_TYPES = ['word', 'sentence'];
     private const MEMORY_STYLES = ['auto', 'phonetic_story', 'semantic_scene'];
 
-    public function __construct(private readonly AiGenerationQueue $queue)
-    {
+    private readonly SyncVersionBusiness $syncVersions;
+
+    public function __construct(
+        private readonly AiGenerationQueue $queue,
+        ?SyncVersionBusiness $syncVersions = null,
+    ) {
+        $this->syncVersions = $syncVersions ?? new SyncVersionBusiness();
     }
 
     public function create(
@@ -62,7 +68,7 @@ final class CreateMemoryCardBusiness
 
         try {
             /** @var array{0: MemoryCard, 1: AiGenerationJob} $created */
-            $created = Db::transaction(static function () use (
+            $created = Db::transaction(function () use (
                 $userId,
                 $idempotencyKey,
                 $requestHash,
@@ -71,8 +77,11 @@ final class CreateMemoryCardBusiness
                 $contentType,
                 $memoryStyle,
             ): array {
+                $user = User::query()->whereKey($userId)->lockForUpdate()->firstOrFail();
+                $syncVersion = $this->syncVersions->nextLocked($user);
                 $card = MemoryCard::query()->create([
                     'user_id' => $userId,
+                    'sync_version' => $syncVersion,
                     'source_text' => $text,
                     'normalized_text' => $text,
                     'content_type' => $contentType,
