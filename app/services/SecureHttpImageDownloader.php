@@ -30,6 +30,7 @@ final class SecureHttpImageDownloader implements RemoteImageDownloader
         private readonly int $minDimension,
         private readonly int $maxDimension,
         private readonly int $maxPixels,
+        private readonly array $redirectHostSuffixes = [],
     ) {
     }
 
@@ -47,7 +48,7 @@ final class SecureHttpImageDownloader implements RemoteImageDownloader
 
         try {
             while (true) {
-                [$host, $resolveEntry] = $this->validateSource($currentUrl);
+                [$host, $resolveEntry] = $this->validateSource($currentUrl, $redirects > 0);
                 $remaining = $deadline - microtime(true);
                 if ($remaining <= 0) {
                     throw new RuntimeException('download deadline exceeded');
@@ -131,7 +132,7 @@ final class SecureHttpImageDownloader implements RemoteImageDownloader
     }
 
     /** @return array{string, string} */
-    private function validateSource(string $url): array
+    private function validateSource(string $url, bool $isRedirect): array
     {
         $parts = parse_url($url);
         $host = strtolower((string) ($parts['host'] ?? ''));
@@ -139,7 +140,7 @@ final class SecureHttpImageDownloader implements RemoteImageDownloader
         if (!is_array($parts)
             || $scheme !== 'https'
             || $host === ''
-            || !in_array($host, array_map('strtolower', $this->allowedHosts), true)
+            || !$this->hostAllowed($host, $isRedirect)
             || isset($parts['user'])
             || isset($parts['pass'])
             || (isset($parts['port']) && (int) $parts['port'] !== 443)) {
@@ -166,6 +167,28 @@ final class SecureHttpImageDownloader implements RemoteImageDownloader
         }
 
         return [$host, $selected];
+    }
+
+    private function hostAllowed(string $host, bool $isRedirect): bool
+    {
+        if (in_array($host, array_map('strtolower', $this->allowedHosts), true)) {
+            return true;
+        }
+        if (!$isRedirect) {
+            return false;
+        }
+
+        foreach ($this->redirectHostSuffixes as $suffix) {
+            $suffix = strtolower(trim((string) $suffix));
+            if ($suffix !== '' && preg_match(
+                '/^p[1-9][0-9]*-' . preg_quote($suffix, '/') . '$/D',
+                $host,
+            ) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function dimensionsAllowed(int $width, int $height): bool

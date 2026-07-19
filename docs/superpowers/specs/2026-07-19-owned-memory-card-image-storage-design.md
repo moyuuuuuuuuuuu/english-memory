@@ -81,8 +81,8 @@ Image failures do not automatically return to `queued`. The existing user retry 
 The downloader applies all of the following to the original URL and every redirect target:
 
 - scheme must be exactly `https`;
-- host must exactly match one entry in comma-separated `IMAGE_SOURCE_HOSTS`;
-- default allowed host is `s.coze.cn`;
+- the original host must exactly match one entry in comma-separated `IMAGE_SOURCE_HOSTS`; the default is `s.coze.cn`;
+- only after a trusted first hop, a redirect host may match `p<positive integer>-<IMAGE_REDIRECT_HOST_SUFFIXES>`; the default suffix is `official-plugin-sign.byteimg.com` because Coze distributes signed images across changing `p3`, `p9`, and potentially other numeric shards;
 - URL user info and non-443 ports are rejected;
 - all resolved A and AAAA addresses must be public;
 - loopback, private, link-local, multicast, documentation, reserved, and unspecified addresses are rejected;
@@ -150,6 +150,7 @@ Add empty-secret-safe settings:
 
 ```dotenv
 IMAGE_SOURCE_HOSTS=s.coze.cn
+IMAGE_REDIRECT_HOST_SUFFIXES=official-plugin-sign.byteimg.com
 IMAGE_CONNECT_TIMEOUT=5
 IMAGE_TOTAL_TIMEOUT=20
 IMAGE_MAX_REDIRECTS=2

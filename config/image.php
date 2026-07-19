@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 return [
     'source_hosts' => array_values(array_filter(array_map('trim', explode(',', getenv('IMAGE_SOURCE_HOSTS') ?: 's.coze.cn')))),
+    'redirect_host_suffixes' => array_values(array_filter(array_map('trim', explode(',', getenv('IMAGE_REDIRECT_HOST_SUFFIXES') ?: 'official-plugin-sign.byteimg.com')))),
     'connect_timeout' => (int) (getenv('IMAGE_CONNECT_TIMEOUT') ?: 5),
     'total_timeout' => (int) (getenv('IMAGE_TOTAL_TIMEOUT') ?: 20),
     'max_redirects' => (int) (getenv('IMAGE_MAX_REDIRECTS') ?: 2),

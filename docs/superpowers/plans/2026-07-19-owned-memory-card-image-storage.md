@@ -12,7 +12,7 @@
 
 - Follow `AGENTS.md`: Controllers call one Business; application logic belongs in Businesses; all third-party and infrastructure behavior belongs in Services.
 - Add only forward migration `0006`; never edit migrations `0001` through `0005`.
-- Only exact hosts from `IMAGE_SOURCE_HOSTS` are allowed; default `s.coze.cn`; no wildcard entries.
+- Original URLs require an exact `IMAGE_SOURCE_HOSTS` match (default `s.coze.cn`). Only a redirect after that trusted hop may match the constrained numeric shard form `p<positive integer>-<IMAGE_REDIRECT_HOST_SUFFIXES>` (default suffix `official-plugin-sign.byteimg.com`); arbitrary suffix and direct CDN input remain forbidden.
 - Accept only HTTPS on port 443 without URL user info; validate every redirect and pin verified DNS with `CURLOPT_RESOLVE`.
 - Download limits are connect 5 seconds, total 20 seconds, 2 redirects, and 10 MiB.
 - Image limits are JPEG/PNG/WebP, dimensions 256–8192, and at most 40,000,000 pixels.
@@ -92,6 +92,7 @@ Add enum cases exactly as asserted. `ImageImportException` must extend `RuntimeE
 ```php
 return [
     'source_hosts' => array_values(array_filter(array_map('trim', explode(',', getenv('IMAGE_SOURCE_HOSTS') ?: 's.coze.cn')))),
+    'redirect_host_suffixes' => array_values(array_filter(array_map('trim', explode(',', getenv('IMAGE_REDIRECT_HOST_SUFFIXES') ?: 'official-plugin-sign.byteimg.com')))),
     'connect_timeout' => (int) (getenv('IMAGE_CONNECT_TIMEOUT') ?: 5),
     'total_timeout' => (int) (getenv('IMAGE_TOTAL_TIMEOUT') ?: 20),
     'max_redirects' => (int) (getenv('IMAGE_MAX_REDIRECTS') ?: 2),

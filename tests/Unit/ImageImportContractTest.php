@@ -78,11 +78,23 @@ final class ImageImportContractTest extends TestCase
 
     public function test_image_configuration_declares_all_safety_limits(): void
     {
-        $config = require dirname(__DIR__, 2) . '/config/image.php';
+        $configuredHosts = getenv('IMAGE_SOURCE_HOSTS');
+        putenv('IMAGE_SOURCE_HOSTS');
+        try {
+            $config = require dirname(__DIR__, 2) . '/config/image.php';
+        } finally {
+            if ($configuredHosts !== false) {
+                putenv('IMAGE_SOURCE_HOSTS=' . $configuredHosts);
+            }
+        }
 
-        self::assertContains('s.coze.cn', $config['source_hosts']);
+        self::assertSame(['s.coze.cn'], $config['source_hosts']);
+        self::assertSame(['official-plugin-sign.byteimg.com'], $config['redirect_host_suffixes']);
         self::assertSame(10485760, $config['max_bytes']);
         self::assertSame(40000000, $config['max_pixels']);
         self::assertSame(82, $config['webp_quality']);
+
+        $environmentTemplate = file_get_contents(dirname(__DIR__, 2) . '/.env.example');
+        self::assertStringContainsString('STORAGE_PUBLIC_URL=http://e.test/storage', $environmentTemplate);
     }
 }

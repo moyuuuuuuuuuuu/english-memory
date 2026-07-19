@@ -86,6 +86,7 @@ return [
             $image['min_dimension'],
             $image['max_dimension'],
             $image['max_pixels'],
+            $image['redirect_host_suffixes'],
         );
     },
     MemoryCardGenerator::class => static function (): MemoryCardGenerator {

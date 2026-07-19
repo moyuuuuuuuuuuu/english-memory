@@ -100,6 +100,37 @@ final class SecureHttpImageDownloaderTest extends TestCase
         }
     }
 
+    public function test_it_allows_only_structured_cdn_hosts_after_a_trusted_redirect(): void
+    {
+        $history = [];
+        $allowed = $this->downloader([
+            new Response(302, ['Location' => 'https://p9-official-plugin-sign.byteimg.com/card.png']),
+            new Response(200, ['Content-Type' => 'image/png'], $this->png()),
+        ], ['93.184.216.34'], history: $history, redirectHostSuffixes: ['official-plugin-sign.byteimg.com']);
+
+        $download = $allowed->download('https://s.coze.cn/t/card');
+
+        self::assertSame('image/png', $download->mime());
+        self::assertCount(2, $history);
+        unlink($download->path());
+
+        foreach ([
+            'https://p9-official-plugin-sign.byteimg.com/card.png',
+            'https://evil-official-plugin-sign.byteimg.com/card.png',
+        ] as $untrustedInitialUrl) {
+            try {
+                $this->downloader(
+                    [new Response(200, ['Content-Type' => 'image/png'], $this->png())],
+                    ['93.184.216.34'],
+                    redirectHostSuffixes: ['official-plugin-sign.byteimg.com'],
+                )->download($untrustedInitialUrl);
+                self::fail('Expected an untrusted initial source to be rejected.');
+            } catch (ImageImportException $exception) {
+                self::assertSame(BusinessCode::ImageSourceNotAllowed, $exception->businessCode());
+            }
+        }
+    }
+
     public function test_it_rejects_declared_oversize_and_transport_errors(): void
     {
         $oversize = $this->downloader([
@@ -146,6 +177,7 @@ final class SecureHttpImageDownloaderTest extends TestCase
         int $maxRedirects = 2,
         int $maxBytes = 10485760,
         ?array &$history = null,
+        array $redirectHostSuffixes = [],
     ): SecureHttpImageDownloader {
         $mock = new MockHandler($responses);
         $stack = HandlerStack::create($mock);
@@ -169,6 +201,7 @@ final class SecureHttpImageDownloaderTest extends TestCase
             256,
             8192,
             40000000,
+            $redirectHostSuffixes,
         );
     }
 
