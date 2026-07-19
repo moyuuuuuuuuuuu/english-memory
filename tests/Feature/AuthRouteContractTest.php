@@ -27,4 +27,13 @@ final class AuthRouteContractTest extends TestCase
         self::assertStringContainsString('TokenService::class', $dependencies);
         self::assertStringContainsString('Authenticate::class', $dependencies);
     }
+
+    public function test_refresh_and_logout_routes_are_explicitly_declared(): void
+    {
+        $routeConfig = file_get_contents(dirname(__DIR__, 2) . '/config/route.php');
+
+        self::assertStringContainsString("Route::post('/api/auth/refresh'", $routeConfig);
+        self::assertStringContainsString("Route::post('/api/auth/logout'", $routeConfig);
+        self::assertGreaterThanOrEqual(2, substr_count($routeConfig, '->middleware([Authenticate::class])'));
+    }
 }

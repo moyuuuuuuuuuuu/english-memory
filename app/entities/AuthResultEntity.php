@@ -37,16 +37,26 @@ final class AuthResultEntity
         ]);
     }
 
-    public static function authenticated(AuthenticatedUserEntity $user, array $accessToken): self
+    public static function authenticated(
+        AuthenticatedUserEntity $user,
+        array $accessToken,
+        ?array $refreshToken = null,
+    ): self
     {
+        $data = [
+            'user' => $user->toArray(),
+            'token_type' => 'Bearer',
+            'access_token' => $accessToken['token'],
+            'expires_in' => $accessToken['expires_in'],
+        ];
+        if ($refreshToken !== null) {
+            $data['refresh_token'] = $refreshToken['token'];
+            $data['refresh_expires_in'] = $refreshToken['expires_in'];
+        }
+
         return new self(200, [
             'success' => true,
-            'data' => [
-                'user' => $user->toArray(),
-                'token_type' => 'Bearer',
-                'access_token' => $accessToken['token'],
-                'expires_in' => $accessToken['expires_in'],
-            ],
+            'data' => $data,
         ]);
     }
 
@@ -55,6 +65,28 @@ final class AuthResultEntity
         return new self(200, [
             'success' => true,
             'data' => ['user' => $user->toArray()],
+        ]);
+    }
+
+    public static function refreshed(array $accessToken, array $refreshToken): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => [
+                'token_type' => 'Bearer',
+                'access_token' => $accessToken['token'],
+                'expires_in' => $accessToken['expires_in'],
+                'refresh_token' => $refreshToken['token'],
+                'refresh_expires_in' => $refreshToken['expires_in'],
+            ],
+        ]);
+    }
+
+    public static function loggedOut(): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => ['logged_out' => true],
         ]);
     }
 

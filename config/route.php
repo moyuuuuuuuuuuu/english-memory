@@ -16,10 +16,14 @@ use app\businesses\CurrentUserBusiness;
 use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
 use app\businesses\LoginBusiness;
+use app\businesses\LogoutBusiness;
+use app\businesses\RefreshSessionBusiness;
 use app\controllers\CurrentUserController;
 use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
 use app\controllers\LoginController;
+use app\controllers\LogoutController;
+use app\controllers\RefreshSessionController;
 use app\middleware\Authenticate;
 use app\services\CozeWorkflowService;
 use app\services\TokenService;
@@ -33,11 +37,25 @@ Route::post('/api/auth/register', static function (Request $request) {
 });
 
 Route::post('/api/auth/login', static function (Request $request) {
-    return (new LoginController(new LoginBusiness(Container::get(TokenService::class))))($request);
+    return (new LoginController(new LoginBusiness(
+        Container::get(TokenService::class),
+        (int) config('auth.refresh_token_ttl', 2592000),
+    )))($request);
 });
 
 Route::get('/api/auth/me', static function (Request $request) {
     return (new CurrentUserController(new CurrentUserBusiness()))($request);
+})->middleware([Authenticate::class]);
+
+Route::post('/api/auth/refresh', static function (Request $request) {
+    return (new RefreshSessionController(new RefreshSessionBusiness(
+        Container::get(TokenService::class),
+        (int) config('auth.refresh_token_ttl', 2592000),
+    )))($request);
+});
+
+Route::post('/api/auth/logout', static function (Request $request) {
+    return (new LogoutController(new LogoutBusiness(Container::get(TokenService::class))))($request);
 })->middleware([Authenticate::class]);
 
 Route::post('/api/memory-cards/generate', static function (Request $request) {

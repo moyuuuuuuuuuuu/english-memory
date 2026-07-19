@@ -19,6 +19,7 @@ final class LoginController
         $result = $this->business->login(
             (string) $request->post('identity', ''),
             (string) $request->post('password', ''),
+            $request->post('device_name'),
         );
 
         return json($result->toResponseArray())->withStatus($result->httpStatus());

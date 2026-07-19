@@ -61,8 +61,17 @@ final class LoginControllerTest extends TestCase
         self::assertSame('Bearer', $payload['data']['token_type']);
         self::assertSame(900, $payload['data']['expires_in']);
         self::assertNotSame('', $payload['data']['access_token']);
+        self::assertSame(2592000, $payload['data']['refresh_expires_in']);
+        self::assertNotSame('', $payload['data']['refresh_token']);
         self::assertSame('codex-login@example.com', $payload['data']['user']['email']);
         self::assertArrayNotHasKey('password_hash', $payload['data']['user']);
+
+        $stored = (array) Db::table('refresh_tokens')
+            ->where('user_id', $payload['data']['user']['id'])
+            ->first();
+        self::assertSame(hash('sha256', $payload['data']['refresh_token']), $stored['token_hash']);
+        self::assertNotSame($payload['data']['refresh_token'], $stored['token_hash']);
+        self::assertSame('phpunit-device', $stored['device_name']);
     }
 
     public function test_it_rejects_wrong_password(): void
@@ -89,6 +98,7 @@ final class LoginControllerTest extends TestCase
         return $controller($this->jsonRequest([
             'identity' => $identity,
             'password' => $password,
+            'device_name' => 'phpunit-device',
         ]));
     }
 
