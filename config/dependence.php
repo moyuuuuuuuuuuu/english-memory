@@ -12,12 +12,14 @@ use app\services\TokenService;
 use app\services\SecureHttpImageDownloader;
 use app\services\SystemDnsResolver;
 use app\services\GdImageProcessor;
+use app\services\LocalImageStorage;
 use app\services\contracts\PasswordResetMail;
 use app\services\contracts\AiGenerationQueue;
 use app\services\contracts\MemoryCardGenerator;
 use app\services\contracts\DnsResolver;
 use app\services\contracts\RemoteImageDownloader;
 use app\services\contracts\ImageProcessor;
+use app\services\contracts\ImageStorage;
 use GuzzleHttp\Client;
 use Psr\Container\ContainerInterface;
 /**
@@ -34,6 +36,19 @@ use Psr\Container\ContainerInterface;
  */
 
 return [
+    ImageStorage::class => static function (): ImageStorage {
+        $image = config('image');
+        $root = (string) $image['storage_local_root'];
+        if (!str_starts_with($root, DIRECTORY_SEPARATOR)) {
+            $root = base_path($root);
+        }
+
+        return new LocalImageStorage(
+            $root,
+            $image['storage_public_url'],
+            $image['storage_driver'],
+        );
+    },
     ImageProcessor::class => static function (): ImageProcessor {
         $image = config('image');
 
