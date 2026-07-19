@@ -37,6 +37,27 @@ final class AuthResultEntity
         ]);
     }
 
+    public static function authenticated(AuthenticatedUserEntity $user, array $accessToken): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => [
+                'user' => $user->toArray(),
+                'token_type' => 'Bearer',
+                'access_token' => $accessToken['token'],
+                'expires_in' => $accessToken['expires_in'],
+            ],
+        ]);
+    }
+
+    public static function currentUser(AuthenticatedUserEntity $user): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => ['user' => $user->toArray()],
+        ]);
+    }
+
     public function httpStatus(): int
     {
         return $this->httpStatus;

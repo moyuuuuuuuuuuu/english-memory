@@ -12,18 +12,33 @@
  * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
+use app\businesses\CurrentUserBusiness;
 use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
+use app\businesses\LoginBusiness;
+use app\controllers\CurrentUserController;
 use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
+use app\controllers\LoginController;
+use app\middleware\Authenticate;
 use app\services\CozeWorkflowService;
+use app\services\TokenService;
 use GuzzleHttp\Client;
+use support\Container;
 use support\Request;
 use Webman\Route;
 
 Route::post('/api/auth/register', static function (Request $request) {
     return (new RegisterController(new RegisterBusiness()))($request);
 });
+
+Route::post('/api/auth/login', static function (Request $request) {
+    return (new LoginController(new LoginBusiness(Container::get(TokenService::class))))($request);
+});
+
+Route::get('/api/auth/me', static function (Request $request) {
+    return (new CurrentUserController(new CurrentUserBusiness()))($request);
+})->middleware([Authenticate::class]);
 
 Route::post('/api/memory-cards/generate', static function (Request $request) {
     $coze = config('coze');

@@ -20,5 +20,15 @@ namespace support;
  */
 class Request extends \Webman\Http\Request
 {
+    private ?int $authenticatedUserId = null;
 
+    public function setAuthenticatedUserId(int $userId): void
+    {
+        $this->authenticatedUserId = $userId;
+    }
+
+    public function authenticatedUserId(): ?int
+    {
+        return $this->authenticatedUserId;
+    }
 }
