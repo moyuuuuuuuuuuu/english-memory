@@ -18,6 +18,8 @@ use app\businesses\CreateMemoryCardBusiness;
 use app\businesses\GetMemoryCardBusiness;
 use app\businesses\ListMemoryCardsBusiness;
 use app\businesses\UpdateMemoryCardBusiness;
+use app\businesses\DeleteMemoryCardBusiness;
+use app\businesses\DeleteStoredMemoryCardImagesBusiness;
 use app\businesses\ListTagsBusiness;
 use app\businesses\RenameTagBusiness;
 use app\businesses\DeleteTagBusiness;
@@ -34,6 +36,7 @@ use app\controllers\CreateMemoryCardController;
 use app\controllers\GetMemoryCardController;
 use app\controllers\ListMemoryCardsController;
 use app\controllers\UpdateMemoryCardController;
+use app\controllers\DeleteMemoryCardController;
 use app\controllers\ListTagsController;
 use app\controllers\RenameTagController;
 use app\controllers\DeleteTagController;
@@ -108,6 +111,12 @@ Route::get('/api/memory-cards/{id}', static function (Request $request, string $
 
 Route::patch('/api/memory-cards/{id}', static function (Request $request, string $id) {
     return (new UpdateMemoryCardController(new UpdateMemoryCardBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::delete('/api/memory-cards/{id}', static function (Request $request, string $id) {
+    return (new DeleteMemoryCardController(new DeleteMemoryCardBusiness(
+        Container::get(DeleteStoredMemoryCardImagesBusiness::class),
+    )))($request, $id);
 })->middleware([Authenticate::class]);
 
 Route::post('/api/memory-cards/{id}/retry', static function (Request $request, string $id) {

@@ -19,6 +19,11 @@ final readonly class MemoryCardMutationResultEntity
         return new self(200, ['success' => true, 'data' => $view->toArray()]);
     }
 
+    public static function deleted(array $tombstone): self
+    {
+        return new self(200, ['success' => true, 'data' => $tombstone]);
+    }
+
     public static function failure(int $httpStatus, BusinessCode $code, string $message): self
     {
         return new self($httpStatus, [
