@@ -32,4 +32,7 @@ enum BusinessCode: string
     case TagNotFound = 'TAG_NOT_FOUND';
     case TagNameConflict = 'TAG_NAME_CONFLICT';
     case TagVersionConflict = 'TAG_VERSION_CONFLICT';
+    case ReviewNotAvailable = 'REVIEW_NOT_AVAILABLE';
+    case InvalidReviewMode = 'INVALID_REVIEW_MODE';
+    case InvalidTimezone = 'INVALID_TIMEZONE';
 }

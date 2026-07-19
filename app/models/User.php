@@ -18,6 +18,7 @@ final class User extends Model
         'last_login_at',
         'sync_version',
         'session_version',
+        'timezone',
     ];
 
     protected $hidden = ['password_hash'];

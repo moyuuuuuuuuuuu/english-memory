@@ -23,6 +23,9 @@ final class MemoryCard extends Model
         'image_url',
         'image_storage_key',
         'next_review_at',
+        'first_reviewed_at',
+        'last_reviewed_at',
+        'review_count',
         'review_stage',
         'deleted_at',
     ];
@@ -33,6 +36,9 @@ final class MemoryCard extends Model
         'content_version' => 'integer',
         'is_favorite' => 'boolean',
         'next_review_at' => 'datetime',
+        'first_reviewed_at' => 'datetime',
+        'last_reviewed_at' => 'datetime',
+        'review_count' => 'integer',
         'deleted_at' => 'datetime',
     ];
 }

@@ -52,4 +52,11 @@ final class DatabaseMigrationContractTest extends TestCase
             dirname(__DIR__, 2) . '/database/migrations/0007_add_card_library_and_sync.sql',
         );
     }
+
+    public function test_review_scheduling_changes_are_in_a_new_forward_migration(): void
+    {
+        self::assertFileExists(
+            dirname(__DIR__, 2) . '/database/migrations/0008_add_review_scheduling_and_game_data.sql',
+        );
+    }
 }

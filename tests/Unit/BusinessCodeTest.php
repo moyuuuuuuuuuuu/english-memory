@@ -39,6 +39,9 @@ final class BusinessCodeTest extends TestCase
             'TAG_NOT_FOUND',
             'TAG_NAME_CONFLICT',
             'TAG_VERSION_CONFLICT',
+            'REVIEW_NOT_AVAILABLE',
+            'INVALID_REVIEW_MODE',
+            'INVALID_TIMEZONE',
         ], array_column(BusinessCode::cases(), 'value'));
     }
 
