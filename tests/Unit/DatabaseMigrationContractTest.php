@@ -18,6 +18,7 @@ final class DatabaseMigrationContractTest extends TestCase
             ['ai_generation_jobs'],
             ['review_events'],
             ['daily_learning_stats'],
+            ['password_reset_tokens'],
         ];
     }
 

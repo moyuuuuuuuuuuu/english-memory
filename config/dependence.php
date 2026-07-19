@@ -1,4 +1,11 @@
 <?php
+
+use app\middleware\Authenticate;
+use app\services\RedisAccessTokenStore;
+use app\services\LogPasswordResetMail;
+use app\services\TokenService;
+use app\services\contracts\PasswordResetMail;
+use Psr\Container\ContainerInterface;
 /**
  * This file is part of webman.
  *
@@ -12,4 +19,13 @@
  * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
-return [];
+return [
+    PasswordResetMail::class => static fn (): PasswordResetMail => new LogPasswordResetMail(),
+    TokenService::class => static fn (): TokenService => new TokenService(
+        new RedisAccessTokenStore(),
+        (int) config('auth.access_token_ttl', 900),
+    ),
+    Authenticate::class => static fn (ContainerInterface $container): Authenticate => new Authenticate(
+        $container->get(TokenService::class),
+    ),
+];

@@ -1,6 +1,6 @@
 # English Memory 项目总计划与换机交接
 
-> 最后更新：2026-07-18
+> 最后更新：2026-07-19
 > 项目目录：`/mnt/e/dnmp/www/english-memory`（Windows：`E:\dnmp\www\english-memory`）
 > 本文件是项目进度、执行顺序和换机恢复的唯一入口。架构细则以 `AGENTS.md` 为准。
 
@@ -69,17 +69,27 @@ Route -> Controller -> Business -> Service / Model
 - [x] Redis `PING`、MySQL 查询、Nginx 配置和 `e.test` 路由均已验证。
 - [x] 当前完整测试基线：17 tests，33 assertions。
 
+### 账户、设备会话与鉴权
+
+- [x] 支持邮箱或用户名注册，密码只保存安全哈希，并拒绝重复身份。
+- [x] 支持邮箱或用户名登录，Access Token 以不透明随机值签发并存入 Redis。
+- [x] 实现 Bearer 鉴权中间件和受保护的当前用户接口。
+- [x] Refresh Token 只保存 SHA-256，携带设备名，支持 30 天过期、轮换和防重放。
+- [x] 退出时撤销当前 Access Token 与对应 Refresh Token。
+- [x] 新增 `password_reset_tokens` 迁移，实现中性找回响应、邮件服务边界、单次限时密码重置。
+- [x] 当前完整测试基线：47 tests，163 assertions。
+
 ## 5. 后续执行路线
 
-### 阶段 2：账户、设备会话与鉴权（下一步）
+### 阶段 2：账户、设备会话与鉴权（已完成）
 
-- [ ] 为注册、登录、刷新、退出和受保护接口先写失败测试。
-- [ ] 实现 `User`、`RefreshToken` 模型及对应 Entity。
-- [ ] 实现用户名或邮箱注册、密码登录、短期 Access Token。
-- [ ] Refresh Token 只存哈希，携带设备信息，支持轮换与吊销。
-- [ ] 实现鉴权中间件、用户上下文和资源归属校验。
-- [ ] 设计找回密码 Token 与可替换邮件服务边界。
-- [ ] 输出接口：`/api/auth/register`、`login`、`refresh`、`logout`、`forgot-password`、`reset-password`。
+- [x] 为注册、登录、刷新、退出和受保护接口先写失败测试。
+- [x] 实现 `User`、`RefreshToken` 模型及对应 Entity。
+- [x] 实现用户名或邮箱注册、密码登录、短期 Access Token。
+- [x] Refresh Token 只存哈希，携带设备信息，支持轮换与吊销。
+- [x] 实现鉴权中间件、用户上下文和资源归属校验。
+- [x] 设计找回密码 Token 与可替换邮件服务边界。
+- [x] 输出接口：`/api/auth/register`、`login`、`refresh`、`logout`、`forgot-password`、`reset-password`。
 
 ### 阶段 3：异步 AI 记忆卡生成
 
@@ -176,6 +186,6 @@ curl -X POST http://e.test/api/memory-cards/generate \
 
 ## 8. 当前交接点
 
-下一次开发从“阶段 2：账户、设备会话与鉴权”开始。第一项工作是为注册、登录、Refresh Token 轮换、退出吊销和未认证访问编写失败测试，然后依照 `AGENTS.md` 落到 Controller -> Business -> Model/Service/Entity 分层中。
+下一次开发从“阶段 3：异步 AI 记忆卡生成”开始。第一项工作是为创建卡片立即返回 Card ID/Job ID、请求幂等键、队列状态和用户归属编写失败测试，然后新增必要迁移并实现 Redis 队列消费者。
 
-当前仓库在本机仍显示大量未跟踪文件。换设备前必须创建首个提交并推送到远程仓库，否则本文件和现有代码不会自动出现在新设备上。
+阶段 2 当前位于 `codex/stage-2-auth` 分支，合并并推送后再开始阶段 3，确保新设备可以从远程仓库恢复。
