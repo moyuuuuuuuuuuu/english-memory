@@ -35,11 +35,11 @@
 - Consumes: `RegisterBusiness::register(?string $email, ?string $username, string $password): AuthResultEntity`.
 - Produces: `POST /api/auth/register` and a sanitized user payload `{id,email,username}`.
 
-- [ ] Write failing tests for email registration, username registration, blank identity, invalid email, short password, duplicate email, and duplicate username.
-- [ ] Run only `RegisterControllerTest` and confirm failures are caused by missing registration classes.
-- [ ] Implement `User` persistence helpers, `AuthResultEntity`, registration validation, password hashing, and the thin controller.
-- [ ] Add the explicit registration route and run the focused tests until green.
-- [ ] Run the full suite and commit the registration slice.
+- [x] Write failing tests for email registration, username registration, blank identity, invalid email, short password, duplicate email, and duplicate username.
+- [x] Run only `RegisterControllerTest` and confirm failures are caused by missing registration classes.
+- [x] Implement `User` persistence helpers, `AuthResultEntity`, registration validation, password hashing, and the thin controller.
+- [x] Add the explicit registration route and run the focused tests until green.
+- [x] Run the full suite and commit the registration slice.
 
 ### Task 2: Access Tokens, Login, And Authentication Middleware
 
@@ -61,11 +61,11 @@
 - `TokenService::resolveAccessToken(string $token): ?int` resolves the authenticated user ID.
 - Produces `POST /api/auth/login` and protected `GET /api/auth/me`.
 
-- [ ] Write and verify failing tests for correct login, wrong password, unknown identity, disabled users, token resolution, missing bearer token, invalid bearer token, and authenticated current-user output.
-- [ ] Implement the token service with an injectable Redis-like contract or callable adapter so unit tests do not depend on global Redis state.
-- [ ] Implement login Business/Controller and typed authenticated user entity.
-- [ ] Implement middleware that parses `Authorization: Bearer`, resolves the user, rejects invalid credentials, and attaches authenticated user ID to request context.
-- [ ] Wire explicit public/protected routes, run focused tests, then run the full suite and commit.
+- [x] Write and verify failing tests for correct login, wrong password, unknown identity, disabled users, token resolution, missing bearer token, invalid bearer token, and authenticated current-user output.
+- [x] Implement the token service with an injectable Redis-like contract or callable adapter so unit tests do not depend on global Redis state.
+- [x] Implement login Business/Controller and typed authenticated user entity.
+- [x] Implement middleware that parses `Authorization: Bearer`, resolves the user, rejects invalid credentials, and attaches authenticated user ID to request context.
+- [x] Wire explicit public/protected routes, run focused tests, then run the full suite and commit.
 
 ### Task 3: Device Refresh Rotation And Logout
 
@@ -83,11 +83,11 @@
 - Login additionally returns `refresh_token` and `refresh_expires_in` and persists only `hash('sha256', token)` with device metadata.
 - Produces `POST /api/auth/refresh` with one-time rotation and protected `POST /api/auth/logout`.
 
-- [ ] Write and verify failing tests for refresh persistence, plaintext absence, device metadata, valid rotation, reuse rejection, expiry rejection, logout revocation, and post-logout access denial.
-- [ ] Implement refresh-token model queries and transactionally rotate old/new refresh rows.
-- [ ] Extend login to issue a device-scoped refresh token.
-- [ ] Implement refresh and logout Businesses/Controllers and route wiring.
-- [ ] Run focused tests, the full suite, and commit.
+- [x] Write and verify failing tests for refresh persistence, plaintext absence, device metadata, valid rotation, reuse rejection, expiry rejection, logout revocation, and post-logout access denial.
+- [x] Implement refresh-token model queries and transactionally rotate old/new refresh rows.
+- [x] Extend login to issue a device-scoped refresh token.
+- [x] Implement refresh and logout Businesses/Controllers and route wiring.
+- [x] Run focused tests, the full suite, and commit.
 
 ### Task 4: Password Reset Persistence And Mail Boundary
 
@@ -107,10 +107,10 @@
 - `PasswordResetMail::send(string $email, string $plainToken): void` is replaceable and is the only boundary that sees the plaintext reset token.
 - Produces `POST /api/auth/forgot-password` and `POST /api/auth/reset-password`.
 
-- [ ] Write and verify failing tests for neutral forgot-password responses, hashed token persistence, mail boundary invocation, valid reset, expired token, reused token, and login with the new password.
-- [ ] Add and run migration `0004`; verify it is idempotent through `scripts/migrate.php`.
-- [ ] Implement the model, mail contract, safe development adapter, Businesses, Controllers, and explicit routes.
-- [ ] Run focused tests, verify no plaintext reset token is persisted, then run the full suite and commit.
+- [x] Write and verify failing tests for neutral forgot-password responses, hashed token persistence, mail boundary invocation, valid reset, expired token, reused token, and login with the new password.
+- [x] Add and run migration `0004`; verify it is idempotent through `scripts/migrate.php`.
+- [x] Implement the model, mail contract, safe development adapter, Businesses, Controllers, and explicit routes.
+- [x] Run focused tests, verify no plaintext reset token is persisted, then run the full suite and commit.
 
 ### Task 5: Stage Verification And Handoff Update
 
@@ -121,8 +121,8 @@
 **Interfaces:**
 - Produces a completed stage-2 handoff and the next entry point: asynchronous AI card generation.
 
-- [ ] Run all migrations twice and verify the second run skips every applied file.
-- [ ] Run PHPUnit, Composer validation, PHP syntax checks for changed PHP files, Nginx validation, and `git diff --check`.
+- [x] Run all migrations twice and verify the second run skips every applied file.
+- [x] Run PHPUnit, Composer validation, PHP syntax checks for changed PHP files, Nginx validation, and `git diff --check`.
 - [ ] Restart Webman from the primary checkout or update the runtime path intentionally; smoke-test registration validation, login rejection, and protected-route rejection through `e.test`.
-- [ ] Mark every completed stage-2 item in `PROJECT_PLAN.md`, update the test baseline and current handoff point, and self-review for secrets.
+- [x] Mark every completed stage-2 item in `PROJECT_PLAN.md`, update the test baseline and current handoff point, and self-review for secrets.
 - [ ] Commit the stage documentation and present the branch for integration before starting stage 3.

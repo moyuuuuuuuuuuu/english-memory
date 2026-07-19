@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use app\businesses\ForgotPasswordBusiness;
+use app\businesses\LoginBusiness;
 use app\businesses\ResetPasswordBusiness;
 use app\controllers\ForgotPasswordController;
+use app\controllers\LoginController;
 use app\controllers\ResetPasswordController;
+use app\services\contracts\AccessTokenStore;
 use app\services\contracts\PasswordResetMail;
+use app\services\TokenService;
 use PHPUnit\Framework\TestCase;
 use support\Db;
 use support\Request;
@@ -65,6 +69,14 @@ final class PasswordResetTest extends TestCase
         self::assertTrue(password_verify('NewSecurePass123!', $hash));
         self::assertNotNull(Db::table('password_reset_tokens')->where('id', $resetId)->value('used_at'));
 
+        $login = (new LoginController(new LoginBusiness(
+            new TokenService(new ResetMemoryTokenStore(), 900),
+        )))($this->request('/api/auth/login', [
+            'identity' => 'codex-reset@example.com',
+            'password' => 'NewSecurePass123!',
+        ]));
+        self::assertSame(200, $login->getStatusCode());
+
         $reuse = $controller($this->request('/api/auth/reset-password', [
             'token' => $plainToken,
             'password' => 'AnotherPass123!',
@@ -117,5 +129,25 @@ final class FakePasswordResetMail implements PasswordResetMail
     public function send(string $email, string $plainToken): void
     {
         $this->messages[] = ['email' => $email, 'token' => $plainToken];
+    }
+}
+
+final class ResetMemoryTokenStore implements AccessTokenStore
+{
+    private array $values = [];
+
+    public function put(string $key, string $value, int $ttlSeconds): void
+    {
+        $this->values[$key] = $value;
+    }
+
+    public function get(string $key): ?string
+    {
+        return $this->values[$key] ?? null;
+    }
+
+    public function delete(string $key): void
+    {
+        unset($this->values[$key]);
     }
 }
