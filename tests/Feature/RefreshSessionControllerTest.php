@@ -47,6 +47,9 @@ final class RefreshSessionControllerTest extends TestCase
         self::assertTrue(Db::table('refresh_tokens')
             ->where('token_hash', hash('sha256', $payload['data']['refresh_token']))
             ->exists());
+        self::assertSame(0, (int) Db::table('refresh_tokens')
+            ->where('token_hash', hash('sha256', $payload['data']['refresh_token']))
+            ->value('session_version'));
 
         $reuse = $controller($this->request($plainToken));
         self::assertSame(401, $reuse->getStatusCode());
@@ -57,6 +60,18 @@ final class RefreshSessionControllerTest extends TestCase
     {
         $plainToken = 'expired-refresh-token';
         $this->insertRefreshToken($plainToken, date('Y-m-d H:i:s', time() - 1));
+
+        $response = $this->controller()($this->request($plainToken));
+
+        self::assertSame(401, $response->getStatusCode());
+        self::assertSame('INVALID_REFRESH_TOKEN', json_decode($response->rawBody(), true)['error']['code']);
+    }
+
+    public function test_it_rejects_a_refresh_token_from_a_replaced_session(): void
+    {
+        $plainToken = 'replaced-refresh-token';
+        $this->insertRefreshToken($plainToken, date('Y-m-d H:i:s', time() + 3600));
+        Db::table('users')->where('id', $this->userId)->update(['session_version' => 1]);
 
         $response = $this->controller()($this->request($plainToken));
 

@@ -11,6 +11,7 @@ use app\entities\AuthResultEntity;
 use app\models\User;
 use app\models\RefreshToken;
 use app\services\TokenService;
+use support\Db;
 
 final class LoginBusiness
 {
@@ -40,22 +41,44 @@ final class LoginBusiness
             return AuthResultEntity::failure(403, BusinessCode::AccountDisabled, '该账户当前不可用。');
         }
 
-        $user->last_login_at = date('Y-m-d H:i:s');
-        $user->save();
+        $session = Db::transaction(function () use ($user, $deviceName): array {
+            /** @var User $locked */
+            $locked = User::query()->whereKey($user->id)->where('status', 'active')->lockForUpdate()->firstOrFail();
+            $now = date('Y-m-d H:i:s');
+            $sessionVersion = (int) $locked->session_version + 1;
+            $locked->session_version = $sessionVersion;
+            $locked->last_login_at = $now;
+            $locked->save();
 
-        $plainRefreshToken = rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
-        RefreshToken::query()->create([
-            'user_id' => (int) $user->id,
-            'token_hash' => hash('sha256', $plainRefreshToken),
-            'device_name' => $deviceName === null ? null : substr(trim($deviceName), 0, 128),
-            'expires_at' => date('Y-m-d H:i:s', time() + $this->refreshTtlSeconds),
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
+            RefreshToken::query()
+                ->where('user_id', (int) $locked->id)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => $now]);
+
+            $plainRefreshToken = rtrim(strtr(base64_encode(random_bytes(48)), '+/', '-_'), '=');
+            RefreshToken::query()->create([
+                'user_id' => (int) $locked->id,
+                'token_hash' => hash('sha256', $plainRefreshToken),
+                'device_name' => $deviceName === null ? null : substr(trim($deviceName), 0, 128),
+                'session_version' => $sessionVersion,
+                'expires_at' => date('Y-m-d H:i:s', time() + $this->refreshTtlSeconds),
+                'created_at' => $now,
+            ]);
+
+            return [
+                'user' => $locked,
+                'session_version' => $sessionVersion,
+                'refresh_token' => $plainRefreshToken,
+            ];
+        });
+
+        /** @var User $activeUser */
+        $activeUser = $session['user'];
 
         return AuthResultEntity::authenticated(
-            new AuthenticatedUserEntity((int) $user->id, $user->email, $user->username),
-            $this->tokens->issueAccessToken((int) $user->id),
-            ['token' => $plainRefreshToken, 'expires_in' => $this->refreshTtlSeconds],
+            new AuthenticatedUserEntity((int) $activeUser->id, $activeUser->email, $activeUser->username),
+            $this->tokens->issueAccessToken((int) $activeUser->id, $session['session_version']),
+            ['token' => $session['refresh_token'], 'expires_in' => $this->refreshTtlSeconds],
         );
     }
 

@@ -6,7 +6,9 @@ namespace app\businesses;
 
 use app\entities\AuthResultEntity;
 use app\models\RefreshToken;
+use app\models\User;
 use app\services\TokenService;
+use support\Db;
 
 final class LogoutBusiness
 {
@@ -16,15 +18,21 @@ final class LogoutBusiness
 
     public function logout(int $userId, string $accessToken, string $refreshToken): AuthResultEntity
     {
-        $this->tokens->revokeAccessToken($accessToken);
-
-        if ($refreshToken !== '') {
+        Db::transaction(static function () use ($userId): void {
+            $user = User::query()->whereKey($userId)->lockForUpdate()->first();
+            if ($user === null) {
+                return;
+            }
+            $now = date('Y-m-d H:i:s');
+            $user->session_version = (int) $user->session_version + 1;
+            $user->save();
             RefreshToken::query()
                 ->where('user_id', $userId)
-                ->where('token_hash', hash('sha256', $refreshToken))
                 ->whereNull('revoked_at')
-                ->update(['revoked_at' => date('Y-m-d H:i:s')]);
-        }
+                ->update(['revoked_at' => $now]);
+        });
+
+        $this->tokens->revokeAccessToken($accessToken);
 
         return AuthResultEntity::loggedOut();
     }

@@ -89,6 +89,27 @@ final class LoginControllerTest extends TestCase
         $this->assertAuthFailure($this->login('codex-login-disabled@example.com', 'SecurePass123!'), 403, 'ACCOUNT_DISABLED');
     }
 
+    public function test_a_new_login_replaces_the_previous_device_session(): void
+    {
+        $store = new LoginMemoryTokenStore();
+        $controller = new LoginController(new LoginBusiness(new TokenService($store, 900)));
+
+        $first = json_decode($controller($this->loginRequest('phone-a'))->rawBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $second = json_decode($controller($this->loginRequest('phone-b'))->rawBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $userId = (int) $second['user']['id'];
+
+        self::assertSame(2, (int) Db::table('users')->where('id', $userId)->value('session_version'));
+        self::assertNotNull(Db::table('refresh_tokens')
+            ->where('token_hash', hash('sha256', $first['refresh_token']))
+            ->value('revoked_at'));
+        self::assertNull(Db::table('refresh_tokens')
+            ->where('token_hash', hash('sha256', $second['refresh_token']))
+            ->value('revoked_at'));
+        self::assertSame(2, (int) Db::table('refresh_tokens')
+            ->where('token_hash', hash('sha256', $second['refresh_token']))
+            ->value('session_version'));
+    }
+
     private function login(string $identity, string $password): \Webman\Http\Response
     {
         $controller = new LoginController(new LoginBusiness(
@@ -100,6 +121,15 @@ final class LoginControllerTest extends TestCase
             'password' => $password,
             'device_name' => 'phpunit-device',
         ]));
+    }
+
+    private function loginRequest(string $device): Request
+    {
+        return $this->jsonRequest([
+            'identity' => 'codex-login@example.com',
+            'password' => 'SecurePass123!',
+            'device_name' => $device,
+        ]);
     }
 
     private function assertAuthFailure(\Webman\Http\Response $response, int $status, string $code): void
