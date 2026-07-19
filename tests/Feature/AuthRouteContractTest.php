@@ -55,4 +55,13 @@ final class AuthRouteContractTest extends TestCase
         self::assertStringContainsString('CreateMemoryCardController', $routeConfig);
         self::assertGreaterThanOrEqual(3, substr_count($routeConfig, '->middleware([Authenticate::class])'));
     }
+
+    public function test_async_memory_card_detail_and_retry_routes_are_authenticated(): void
+    {
+        $routeConfig = file_get_contents(dirname(__DIR__, 2) . '/config/route.php');
+
+        self::assertStringContainsString("Route::get('/api/memory-cards/{id}'", $routeConfig);
+        self::assertStringContainsString("Route::post('/api/memory-cards/{id}/retry'", $routeConfig);
+        self::assertGreaterThanOrEqual(5, substr_count($routeConfig, '->middleware([Authenticate::class])'));
+    }
 }

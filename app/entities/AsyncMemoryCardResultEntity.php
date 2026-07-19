@@ -44,6 +44,17 @@ final readonly class AsyncMemoryCardResultEntity
         ]);
     }
 
+    public static function detail(array $card, ?array $job): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => [
+                'card' => $card,
+                'job' => $job,
+            ],
+        ]);
+    }
+
     public function httpStatus(): int
     {
         return $this->httpStatus;

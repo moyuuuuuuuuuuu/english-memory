@@ -14,6 +14,8 @@
 
 use app\businesses\CurrentUserBusiness;
 use app\businesses\CreateMemoryCardBusiness;
+use app\businesses\GetMemoryCardBusiness;
+use app\businesses\RetryMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
 use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
@@ -23,6 +25,8 @@ use app\businesses\RefreshSessionBusiness;
 use app\businesses\ResetPasswordBusiness;
 use app\controllers\CurrentUserController;
 use app\controllers\CreateMemoryCardController;
+use app\controllers\GetMemoryCardController;
+use app\controllers\RetryMemoryCardController;
 use app\controllers\ForgotPasswordController;
 use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
@@ -81,6 +85,16 @@ Route::post('/api/memory-cards', static function (Request $request) {
     return (new CreateMemoryCardController(new CreateMemoryCardBusiness(
         Container::get(AiGenerationQueue::class),
     )))($request);
+})->middleware([Authenticate::class]);
+
+Route::get('/api/memory-cards/{id}', static function (Request $request, string $id) {
+    return (new GetMemoryCardController(new GetMemoryCardBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::post('/api/memory-cards/{id}/retry', static function (Request $request, string $id) {
+    return (new RetryMemoryCardController(new RetryMemoryCardBusiness(
+        Container::get(AiGenerationQueue::class),
+    )))($request, $id);
 })->middleware([Authenticate::class]);
 
 Route::post('/api/memory-cards/generate', static function (Request $request) {
