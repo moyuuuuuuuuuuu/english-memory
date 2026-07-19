@@ -102,6 +102,7 @@ return [
     AiGenerationQueue::class => static fn (): AiGenerationQueue => new RedisStreamAiGenerationQueue(),
     ProcessAiGenerationJobBusiness::class => static fn (ContainerInterface $container): ProcessAiGenerationJobBusiness => new ProcessAiGenerationJobBusiness(
         $container->get(MemoryCardGenerator::class),
+        $container->get(ImportMemoryCardImageBusiness::class),
     ),
     AiGenerationWorker::class => static fn (ContainerInterface $container): AiGenerationWorker => new AiGenerationWorker(
         $container->get(AiGenerationQueue::class),

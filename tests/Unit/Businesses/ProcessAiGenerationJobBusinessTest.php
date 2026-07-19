@@ -4,9 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Businesses;
 
+use app\businesses\ImportMemoryCardImageBusiness;
 use app\businesses\ProcessAiGenerationJobBusiness;
+use app\common\enums\BusinessCode;
+use app\common\exceptions\ImageImportException;
 use app\entities\AiGenerationResultEntity;
+use app\entities\DownloadedImageEntity;
+use app\entities\ImageArtifactEntity;
+use app\entities\ProcessedImageSetEntity;
+use app\entities\StoredImageSetEntity;
+use app\services\contracts\ImageProcessor;
+use app\services\contracts\ImageStorage;
 use app\services\contracts\MemoryCardGenerator;
+use app\services\contracts\RemoteImageDownloader;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use support\Db;
@@ -29,6 +39,7 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
 
     protected function tearDown(): void
     {
+        Db::table('memory_card_images')->where('user_id', $this->userId)->delete();
         Db::table('ai_generation_jobs')->where('user_id', $this->userId)->delete();
         Db::table('memory_cards')->where('user_id', $this->userId)->delete();
         Db::table('users')->where('id', $this->userId)->delete();
@@ -44,7 +55,7 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
             'execute-safe-123',
         ));
 
-        (new ProcessAiGenerationJobBusiness($generator))->process($jobId);
+        (new ProcessAiGenerationJobBusiness($generator, $this->imageImporter()))->process($jobId);
 
         $job = $this->job($jobId);
         $card = (array) Db::table('memory_cards')->where('id', $cardId)->first();
@@ -53,8 +64,10 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
         self::assertNotNull($job['started_at']);
         self::assertNotNull($job['completed_at']);
         self::assertSame('resilient', $card['normalized_text']);
-        self::assertSame('https://example.test/card.png', $card['image_url']);
+        self::assertSame('http://e.test/storage/memory-cards/test-large.webp', $card['image_url']);
+        self::assertSame('memory-cards/test-large.webp', $card['image_storage_key']);
         self::assertSame('resilient', json_decode($card['card_payload'], true, 512, JSON_THROW_ON_ERROR)['word']);
+        self::assertStringNotContainsString('example.test', json_encode($card, JSON_THROW_ON_ERROR));
     }
 
     public function test_provider_declared_failure_becomes_terminal_without_raw_error(): void
@@ -62,7 +75,7 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
         [, $jobId] = $this->createJob();
         $generator = new WorkerGenerator(AiGenerationResultEntity::failure([], 'provider secret detail'));
 
-        (new ProcessAiGenerationJobBusiness($generator))->process($jobId);
+        (new ProcessAiGenerationJobBusiness($generator, $this->imageImporter()))->process($jobId);
 
         $job = $this->job($jobId);
         self::assertSame('failed', $job['status']);
@@ -76,7 +89,7 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
         [, $jobId] = $this->createJob();
         $generator = new WorkerGenerator(new RuntimeException('token and raw provider secret'));
 
-        (new ProcessAiGenerationJobBusiness($generator))->process($jobId);
+        (new ProcessAiGenerationJobBusiness($generator, $this->imageImporter()))->process($jobId);
 
         $job = $this->job($jobId);
         self::assertSame('failed', $job['status']);
@@ -92,10 +105,10 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
 
         (new ProcessAiGenerationJobBusiness(new WorkerGenerator(
             AiGenerationResultEntity::success(['word' => 'resilient'], 'https://example.test/a.png', 'execute-a'),
-        )))->process($invalidCardJob);
+        ), $this->imageImporter()))->process($invalidCardJob);
         (new ProcessAiGenerationJobBusiness(new WorkerGenerator(
             AiGenerationResultEntity::success($this->validCard(), '', 'execute-b'),
-        )))->process($missingImageJob);
+        ), $this->imageImporter()))->process($missingImageJob);
 
         foreach ([$invalidCardJob, $missingImageJob] as $jobId) {
             $job = $this->job($jobId);
@@ -114,7 +127,7 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
             'https://example.test/card.png',
             'execute-safe',
         ));
-        $business = new ProcessAiGenerationJobBusiness($generator);
+        $business = new ProcessAiGenerationJobBusiness($generator, $this->imageImporter());
 
         $business->process($completedJob);
         $business->process($activeJob);
@@ -132,9 +145,37 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
             'execute-safe',
         ));
 
-        (new ProcessAiGenerationJobBusiness($generator))->process(999999999);
+        (new ProcessAiGenerationJobBusiness($generator, $this->imageImporter()))->process(999999999);
 
         self::assertSame(0, $generator->calls);
+    }
+
+    public function test_image_import_failure_preserves_generated_text_and_records_safe_error(): void
+    {
+        [$cardId, $jobId] = $this->createJob('image-failure');
+        $generator = new WorkerGenerator(AiGenerationResultEntity::success(
+            $this->validCard(),
+            'https://example.test/temporary-card.png',
+            'execute-image-failure',
+        ));
+        $failure = new ImageImportException(
+            BusinessCode::ImageDownloadFailed,
+            'image_download',
+            '图片下载失败，请手动重试。',
+        );
+
+        (new ProcessAiGenerationJobBusiness($generator, $this->imageImporter($failure)))->process($jobId);
+
+        $job = $this->job($jobId);
+        $card = (array) Db::table('memory_cards')->where('id', $cardId)->first();
+        self::assertSame('failed', $job['status']);
+        self::assertSame('IMAGE_DOWNLOAD_FAILED', $job['error_code']);
+        self::assertSame('image_download', $job['failure_type']);
+        self::assertSame('图片下载失败，请手动重试。', $job['error_message']);
+        self::assertSame('resilient', $card['normalized_text']);
+        self::assertSame('resilient', json_decode($card['card_payload'], true, 512, JSON_THROW_ON_ERROR)['word']);
+        self::assertNull($card['image_url']);
+        self::assertStringNotContainsString('example.test', (string) $job['provider_payload']);
     }
 
     private function createJob(string $key = 'worker-job', string $status = 'queued'): array
@@ -184,6 +225,74 @@ final class ProcessAiGenerationJobBusinessTest extends TestCase
     {
         return (array) Db::table('ai_generation_jobs')->where('id', $jobId)->first();
     }
+
+    private function imageImporter(?ImageImportException $failure = null): ImportMemoryCardImageBusiness
+    {
+        return new ImportMemoryCardImageBusiness(
+            new BusinessTestImageDownloader($failure),
+            new BusinessTestImageProcessor(),
+            new BusinessTestImageStorage(),
+        );
+    }
+}
+
+final class BusinessTestImageDownloader implements RemoteImageDownloader
+{
+    public function __construct(private readonly ?ImageImportException $failure) {}
+
+    public function download(string $url): DownloadedImageEntity
+    {
+        if ($this->failure !== null) {
+            throw $this->failure;
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'business-image-');
+        file_put_contents($path, 'original');
+        return new DownloadedImageEntity($path, 'image/png', 8, 1024, 1024);
+    }
+}
+
+final class BusinessTestImageProcessor implements ImageProcessor
+{
+    public function process(DownloadedImageEntity $source): ProcessedImageSetEntity
+    {
+        return new ProcessedImageSetEntity(
+            $this->artifact('original', 'png', 'image/png', 1024),
+            $this->artifact('large', 'webp', 'image/webp', 1024),
+            $this->artifact('small', 'webp', 'image/webp', 512),
+        );
+    }
+
+    private function artifact(string $role, string $extension, string $mime, int $size): ImageArtifactEntity
+    {
+        $path = tempnam(sys_get_temp_dir(), 'business-artifact-');
+        file_put_contents($path, $role);
+        return new ImageArtifactEntity($role, $path, $extension, $mime, $size, $size, strlen($role), hash('sha256', $role));
+    }
+}
+
+final class BusinessTestImageStorage implements ImageStorage
+{
+    public function store(int $userId, int $cardId, ProcessedImageSetEntity $images): StoredImageSetEntity
+    {
+        return new StoredImageSetEntity(
+            'local',
+            'memory-cards/test-original.png',
+            'memory-cards/test-large.webp',
+            'memory-cards/test-small.webp',
+            $images->original()->sha256(),
+            $images->large()->sha256(),
+            $images->small()->sha256(),
+            'image/png',
+            1024,
+            1024,
+            8,
+            'http://e.test/storage/memory-cards/test-large.webp',
+            'http://e.test/storage/memory-cards/test-small.webp',
+        );
+    }
+
+    public function deleteKeys(array $keys): void {}
 }
 
 final class WorkerGenerator implements MemoryCardGenerator

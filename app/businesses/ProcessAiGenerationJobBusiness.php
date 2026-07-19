@@ -6,6 +6,7 @@ namespace app\businesses;
 
 use app\common\enums\AiGenerationStatus;
 use app\common\enums\BusinessCode;
+use app\common\exceptions\ImageImportException;
 use app\entities\AiGenerationResultEntity;
 use app\models\AiGenerationJob;
 use app\models\MemoryCard;
@@ -15,8 +16,10 @@ use Throwable;
 
 final class ProcessAiGenerationJobBusiness
 {
-    public function __construct(private readonly MemoryCardGenerator $generator)
-    {
+    public function __construct(
+        private readonly MemoryCardGenerator $generator,
+        private readonly ImportMemoryCardImageBusiness $imageImporter,
+    ) {
     }
 
     public function process(int $jobId): void
@@ -64,36 +67,59 @@ final class ProcessAiGenerationJobBusiness
             return;
         }
 
-        AiGenerationJob::query()
-            ->where('id', $jobId)
-            ->where('status', AiGenerationStatus::GeneratingText->value)
-            ->update(['status' => AiGenerationStatus::GeneratingImage->value]);
-
-        Db::transaction(static function () use ($jobId, $result, $cardPayload): void {
+        $context = Db::transaction(static function () use ($jobId, $result, $cardPayload): ?array {
             /** @var AiGenerationJob|null $job */
             $job = AiGenerationJob::query()->where('id', $jobId)->lockForUpdate()->first();
-            if ($job === null || $job->status !== AiGenerationStatus::GeneratingImage->value) {
-                return;
+            if ($job === null || $job->status !== AiGenerationStatus::GeneratingText->value) {
+                return null;
             }
 
-            MemoryCard::query()
+            $updated = MemoryCard::query()
                 ->where('id', (int) $job->memory_card_id)
                 ->where('user_id', (int) $job->user_id)
                 ->update([
                     'normalized_text' => (string) ($cardPayload['normalized_text'] ?? $cardPayload['word']),
                     'card_payload' => $cardPayload,
-                    'image_url' => $result->imageUrl(),
                 ]);
+            if ($updated !== 1) {
+                return null;
+            }
 
             $job->forceFill([
                 'provider_payload' => ['execute_id' => $result->executeId()],
-                'status' => AiGenerationStatus::Completed->value,
+                'status' => AiGenerationStatus::GeneratingImage->value,
                 'error_code' => null,
                 'error_message' => null,
                 'failure_type' => null,
-                'completed_at' => date('Y-m-d H:i:s'),
+                'completed_at' => null,
             ])->save();
+
+            return [
+                'user_id' => (int) $job->user_id,
+                'card_id' => (int) $job->memory_card_id,
+            ];
         });
+
+        if ($context === null) {
+            return;
+        }
+
+        try {
+            $this->imageImporter->import(
+                $context['user_id'],
+                $context['card_id'],
+                $jobId,
+                $result->imageUrl(),
+            );
+        } catch (ImageImportException $exception) {
+            $this->fail(
+                $jobId,
+                $exception->businessCode(),
+                $exception->failureType(),
+                $exception->safeMessage(),
+                false,
+            );
+        }
     }
 
     private function claim(int $jobId): ?array
@@ -151,20 +177,25 @@ final class ProcessAiGenerationJobBusiness
         BusinessCode $code,
         string $failureType,
         string $safeMessage,
+        bool $clearProviderPayload = true,
     ): void {
+        $values = [
+            'status' => AiGenerationStatus::Failed->value,
+            'error_code' => $code->value,
+            'error_message' => $safeMessage,
+            'failure_type' => $failureType,
+            'completed_at' => date('Y-m-d H:i:s'),
+        ];
+        if ($clearProviderPayload) {
+            $values['provider_payload'] = null;
+        }
+
         AiGenerationJob::query()
             ->where('id', $jobId)
             ->whereIn('status', [
                 AiGenerationStatus::GeneratingText->value,
                 AiGenerationStatus::GeneratingImage->value,
             ])
-            ->update([
-                'status' => AiGenerationStatus::Failed->value,
-                'error_code' => $code->value,
-                'error_message' => $safeMessage,
-                'failure_type' => $failureType,
-                'provider_payload' => null,
-                'completed_at' => date('Y-m-d H:i:s'),
-            ]);
+            ->update($values);
     }
 }
