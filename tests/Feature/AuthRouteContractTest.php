@@ -36,4 +36,14 @@ final class AuthRouteContractTest extends TestCase
         self::assertStringContainsString("Route::post('/api/auth/logout'", $routeConfig);
         self::assertGreaterThanOrEqual(2, substr_count($routeConfig, '->middleware([Authenticate::class])'));
     }
+
+    public function test_password_reset_routes_and_mail_boundary_are_declared(): void
+    {
+        $routeConfig = file_get_contents(dirname(__DIR__, 2) . '/config/route.php');
+        $dependencies = file_get_contents(dirname(__DIR__, 2) . '/config/dependence.php');
+
+        self::assertStringContainsString("Route::post('/api/auth/forgot-password'", $routeConfig);
+        self::assertStringContainsString("Route::post('/api/auth/reset-password'", $routeConfig);
+        self::assertStringContainsString('PasswordResetMail::class', $dependencies);
+    }
 }

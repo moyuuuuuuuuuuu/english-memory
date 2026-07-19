@@ -90,6 +90,22 @@ final class AuthResultEntity
         ]);
     }
 
+    public static function passwordResetRequested(): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => ['message' => '如果该邮箱已注册，重置说明将会发送。'],
+        ]);
+    }
+
+    public static function passwordReset(): self
+    {
+        return new self(200, [
+            'success' => true,
+            'data' => ['password_reset' => true],
+        ]);
+    }
+
     public function httpStatus(): int
     {
         return $this->httpStatus;

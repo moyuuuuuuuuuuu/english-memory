@@ -2,7 +2,9 @@
 
 use app\middleware\Authenticate;
 use app\services\RedisAccessTokenStore;
+use app\services\LogPasswordResetMail;
 use app\services\TokenService;
+use app\services\contracts\PasswordResetMail;
 use Psr\Container\ContainerInterface;
 /**
  * This file is part of webman.
@@ -18,6 +20,7 @@ use Psr\Container\ContainerInterface;
  */
 
 return [
+    PasswordResetMail::class => static fn (): PasswordResetMail => new LogPasswordResetMail(),
     TokenService::class => static fn (): TokenService => new TokenService(
         new RedisAccessTokenStore(),
         (int) config('auth.access_token_ttl', 900),
