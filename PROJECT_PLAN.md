@@ -77,7 +77,7 @@ Route -> Controller -> Business -> Service / Model
 - [x] Refresh Token 只保存 SHA-256，携带设备名，支持 30 天过期、轮换和防重放。
 - [x] 退出时撤销当前 Access Token 与对应 Refresh Token。
 - [x] 新增 `password_reset_tokens` 迁移，实现中性找回响应、邮件服务边界、单次限时密码重置。
-- [x] 当前完整测试基线：47 tests，163 assertions。
+- [x] 当前完整测试基线：48 tests，165 assertions。
 
 ## 5. 后续执行路线
 
@@ -188,4 +188,4 @@ curl -X POST http://e.test/api/memory-cards/generate \
 
 下一次开发从“阶段 3：异步 AI 记忆卡生成”开始。第一项工作是为创建卡片立即返回 Card ID/Job ID、请求幂等键、队列状态和用户归属编写失败测试，然后新增必要迁移并实现 Redis 队列消费者。
 
-阶段 2 当前位于 `codex/stage-2-auth` 分支，合并并推送后再开始阶段 3，确保新设备可以从远程仓库恢复。
+阶段 2 已合并到本地 `master`。推送远程仓库后再开始阶段 3，确保新设备可以从远程仓库恢复。

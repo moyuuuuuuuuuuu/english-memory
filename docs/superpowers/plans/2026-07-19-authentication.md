@@ -123,6 +123,6 @@
 
 - [x] Run all migrations twice and verify the second run skips every applied file.
 - [x] Run PHPUnit, Composer validation, PHP syntax checks for changed PHP files, Nginx validation, and `git diff --check`.
-- [ ] Restart Webman from the primary checkout or update the runtime path intentionally; smoke-test registration validation, login rejection, and protected-route rejection through `e.test`.
+- [x] Restart Webman from the primary checkout or update the runtime path intentionally; smoke-test registration validation, login rejection, and protected-route rejection through `e.test`.
 - [x] Mark every completed stage-2 item in `PROJECT_PLAN.md`, update the test baseline and current handoff point, and self-review for secrets.
-- [ ] Commit the stage documentation and present the branch for integration before starting stage 3.
+- [x] Commit the stage documentation and present the branch for integration before starting stage 3.
