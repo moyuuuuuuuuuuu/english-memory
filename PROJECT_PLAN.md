@@ -141,11 +141,11 @@ Route -> Controller -> Business -> Service / Model
 
 ### 阶段 6：间隔复习与游戏数据
 
-- [ ] 实现今日复习、提交答案和统计总览接口。
-- [ ] 支持图片回忆、听音拼写和中译英三种模式。
-- [ ] 调度算法覆盖首次复习、答对、答错、逾期和时区边界。
-- [ ] XP、连对、等级和连续学习天数只做反馈，不影响间隔算法。
-- [ ] 答案提交使用幂等键，避免离线重传产生重复统计。
+- [x] 实现今日复习、提交答案和统计总览接口。
+- [x] 支持图片回忆、听音拼写和中译英三种模式。
+- [x] 调度算法覆盖首次复习、答对、答错、逾期和时区边界。
+- [x] XP、连对、等级和连续学习天数只做反馈，不影响间隔算法。
+- [x] 答案提交使用幂等键，避免离线重传产生重复统计。
 
 ### 阶段 7：Flutter 基础与本地 OCR
 
@@ -212,10 +212,10 @@ curl -X POST http://e.test/api/memory-cards \
 
 ## 8. 当前交接点
 
-阶段 5 已于 2026-07-19 合并到本地 `master`，迁移 `0007_add_card_library_and_sync.sql` 已应用且连续执行两次均幂等跳过。完整基线为 156 tests、724 assertions；64 个阶段变更 PHP 文件语法检查通过，Composer 配置有效，Redis `PONG`，Nginx 配置检查通过，敏感信息扫描无命中。
+阶段 6 已在分支 `codex/stage-6-reviews` 完成实现并等待合并到本地 `master`。迁移 `0008_add_review_scheduling_and_game_data.sql` 已应用，连续执行两次均幂等跳过。完整基线为 187 tests、875 assertions；43 个阶段变更 PHP 文件语法检查通过，Composer 配置有效，Redis `PONG`，Nginx 配置检查通过，敏感信息与真实扣子临时短链扫描无命中。
 
-新增认证接口行为包括单活设备会话替换；卡片库接口包括 `GET /api/memory-cards`、`GET/PATCH/DELETE /api/memory-cards/{id}`、`POST /api/memory-cards/{id}/regenerate`；标签接口包括 `GET/PATCH/DELETE /api/tags/{id}`（列表为 `GET /api/tags`）；同步入口为 `GET /api/sync/changes`。卡片分页使用稳定 keyset 游标，同步按完整 `sync_version` 批次返回，单个版本不会被 limit 拆开。
+阶段 6 新增 `GET /api/reviews/today`、`POST /api/reviews/{id}/answer`、`GET /api/stats/overview` 和 `PATCH /api/auth/me/timezone`。固定间隔为 10 分钟、1/3/7/14/30/60/120 天；错误答案强制 `again`，正确答案保留 `hard/good/easy`。答案提交按用户和幂等键去重，同一请求字节稳定重放，不同请求返回冲突；每个唯一答案只分配一个用户同步版本。统计包含今日/累计准确率、XP、等级、连对、连续学习日及待复习/新卡数量。
 
-无 Coze HTTP 烟测已验证：设备 B 登录后设备 A 返回 401、设备 B 返回 200；列表、编辑、收藏、规范化标签、标签重命名/删除、从游标 0 开始的两段增量同步、卡片墓碑均成功；删除后 `memory_card_images` 数量为 0，临时账户已清理。Webman 重启后 ai-generation-consumer、ai-generation-compensation、webman、monitor 的 `exit_status` 和 `exit_count` 均为 0。
+合并后的 Worker 重启与无 Coze HTTP 烟测仍是本阶段最后的运行时门禁；完成后需在本节补记四类进程状态、重放响应、统计响应、时区更新和临时数据清理结果。
 
-下一次开发从“阶段 6：间隔复习与游戏数据”开始，先定义今日复习队列、答案提交幂等合同、复习调度状态转移和时区边界测试。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
+本阶段运行时门禁通过后，下一次开发从“阶段 7：Flutter 基础与本地 OCR”开始。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
