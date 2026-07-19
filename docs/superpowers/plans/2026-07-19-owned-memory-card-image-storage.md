@@ -42,7 +42,7 @@
 - `ImageImportException::safeMessage(): string`
 - Entities expose typed getters only and never serialize internal paths into API payloads.
 
-- [ ] **Step 1: Write the failing contract test**
+- [x] **Step 1: Write the failing contract test**
 
 ```php
 self::assertSame([
@@ -70,7 +70,7 @@ $exception = new ImageImportException(
 self::assertSame('INVALID_IMAGE', $exception->businessCode()->value);
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run:
 
@@ -81,13 +81,13 @@ docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 \
 
 Expected: failure because the new enum cases, exception, entities, and configuration do not exist.
 
-- [ ] **Step 3: Implement the stable failure and entity contracts**
+- [x] **Step 3: Implement the stable failure and entity contracts**
 
 Add enum cases exactly as asserted. `ImageImportException` must extend `RuntimeException` but pass only the safe Chinese message to its parent. Store `BusinessCode` and failure type as readonly properties.
 
 `DownloadedImageEntity` contains temporary path, MIME, byte count, width, and height. `ImageArtifactEntity` contains role, path, extension, MIME, width, height, byte count, and SHA-256. `ProcessedImageSetEntity` contains `original()`, `large()`, and `small()`. `StoredImageSetEntity` contains driver, all keys and checksums, original metadata, and `largeUrl()`/`smallUrl()`.
 
-- [ ] **Step 4: Add exact configuration defaults**
+- [x] **Step 4: Add exact configuration defaults**
 
 ```php
 return [
@@ -109,7 +109,7 @@ return [
 
 Mirror every key in `.env.example` without credentials.
 
-- [ ] **Step 5: Run focused/full tests and commit**
+- [x] **Step 5: Run focused/full tests and commit**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 ./vendor/bin/phpunit
@@ -132,7 +132,7 @@ git commit -m "feat: define image import contracts"
 - `MemoryCardImage::forOwnedCard(int $userId, int $cardId): ?self`
 - Fillable attributes exactly match the migration metadata fields.
 
-- [ ] **Step 1: Write the failing migration/model test**
+- [x] **Step 1: Write the failing migration/model test**
 
 ```php
 $sql = file_get_contents($root . '/database/migrations/0006_create_memory_card_images.sql');
@@ -145,15 +145,15 @@ self::assertContains('large_sha256', $model->getFillable());
 self::assertTrue(method_exists($model, 'forOwnedCard'));
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Expected: migration and model missing.
 
-- [ ] **Step 3: Add migration `0006`**
+- [x] **Step 3: Add migration `0006`**
 
 Create columns from the approved specification using unsigned BIGINT identifiers, `CHAR(64)` checksums, `VARCHAR(512)` keys, `VARCHAR(128)` driver/MIME values, unsigned dimension/byte fields, one unique key on `memory_card_id`, a user/card lookup index, and user/card cascading foreign keys.
 
-- [ ] **Step 4: Implement the model and ownership query**
+- [x] **Step 4: Implement the model and ownership query**
 
 ```php
 public static function forOwnedCard(int $userId, int $cardId): ?self
@@ -167,7 +167,7 @@ public static function forOwnedCard(int $userId, int $cardId): ?self
 }
 ```
 
-- [ ] **Step 5: Apply migration twice, test, and commit**
+- [x] **Step 5: Apply migration twice, test, and commit**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 php scripts/migrate.php
@@ -196,7 +196,7 @@ Expected: first migration run applies `0006`; second skips it.
 - `RemoteImageDownloader::download(string $url): DownloadedImageEntity`.
 - Caller owns and removes the returned temporary file.
 
-- [ ] **Step 1: Write failing URL/DNS/download tests**
+- [x] **Step 1: Write failing URL/DNS/download tests**
 
 Use a fake `DnsResolver` and Guzzle `MockHandler`/history middleware. Cover:
 
@@ -221,15 +221,15 @@ public static function blockedUrlProvider(): array
 
 Also assert rejection for empty DNS, any private/mixed DNS result, third redirect, redirect to another host, `Content-Length` above the limit, observed bytes above the limit, non-2xx response, and transport exception. Assert a successful request uses `CURLOPT_RESOLVE`, writes a temporary file, and returns accurate metadata.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+- [x] **Step 2: Run focused tests and confirm RED**
 
 Expected: downloader contracts/classes missing.
 
-- [ ] **Step 3: Implement DNS resolution and public-address validation**
+- [x] **Step 3: Implement DNS resolution and public-address validation**
 
 `SystemDnsResolver` uses `dns_get_record` for A and AAAA records. `SecureHttpImageDownloader` rejects an address unless `filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)` succeeds. Reject the entire host if any resolved address is invalid.
 
-- [ ] **Step 4: Implement manually redirected, pinned streaming download**
+- [x] **Step 4: Implement manually redirected, pinned streaming download**
 
 For every hop:
 
@@ -251,7 +251,7 @@ $options = [
 
 Resolve relative `Location` headers against the current URL, then repeat full URL and DNS validation. Map unsafe source errors to `IMAGE_SOURCE_NOT_ALLOWED` and transfer failures to `IMAGE_DOWNLOAD_FAILED`. Always delete partial files.
 
-- [ ] **Step 5: Bind services, run tests, and commit**
+- [x] **Step 5: Bind services, run tests, and commit**
 
 Bind `DnsResolver` to `SystemDnsResolver` and `RemoteImageDownloader` to `SecureHttpImageDownloader` using `config('image')` values and a Guzzle cURL handler.
 
@@ -276,7 +276,7 @@ git commit -m "feat: securely download generated images"
 - `ImageProcessor::process(DownloadedImageEntity $source): ProcessedImageSetEntity`.
 - Caller removes all returned artifact temporary paths after storage or failure.
 
-- [ ] **Step 1: Write failing processor tests with generated fixtures**
+- [x] **Step 1: Write failing processor tests with generated fixtures**
 
 Generate JPEG, PNG with transparency, and WebP fixtures using GD. Assert:
 
@@ -290,15 +290,15 @@ self::assertSame(hash_file('sha256', $processed->large()->path()), $processed->l
 
 Cover no enlargement, aspect ratio, transparent output, corrupt data, MIME mismatch, unsupported GIF, dimensions below/above bounds, pixel count above 40 million through injected metadata, and cleanup of partial artifacts after encode failure.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+- [x] **Step 2: Run focused tests and confirm RED**
 
 Expected: `ImageProcessor` and `GdImageProcessor` missing.
 
-- [ ] **Step 3: Implement safe decode and dimension validation**
+- [x] **Step 3: Implement safe decode and dimension validation**
 
 Use fileinfo plus `getimagesize`, require MIME agreement, then decode with the exact GD decoder for JPEG/PNG/WebP. Validate dimensions and pixel count before allocating derivative canvases. Map validation errors to `INVALID_IMAGE`.
 
-- [ ] **Step 4: Implement proportional WebP variants**
+- [x] **Step 4: Implement proportional WebP variants**
 
 ```php
 $scale = min(1, $maxEdge / max($sourceWidth, $sourceHeight));
@@ -308,7 +308,7 @@ $targetHeight = max(1, (int) round($sourceHeight * $scale));
 
 Use true-color canvases, alpha save/blending for transparent sources, high-quality resampling, and `imagewebp(..., $quality)`. Copy the original bytes unchanged to a managed temporary artifact. Map decode/encode errors to stable validation/processing exceptions and destroy every GD resource in `finally`.
 
-- [ ] **Step 5: Bind, test, and commit**
+- [x] **Step 5: Bind, test, and commit**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 ./vendor/bin/phpunit --filter GdImageProcessorTest
@@ -331,23 +331,23 @@ git commit -m "feat: generate memory card image variants"
 - `ImageStorage::store(int $userId, int $cardId, ProcessedImageSetEntity $images): StoredImageSetEntity`.
 - `ImageStorage::deleteKeys(array $keys): void` is idempotent.
 
-- [ ] **Step 1: Write failing storage tests with a unique temporary root**
+- [x] **Step 1: Write failing storage tests with a unique temporary root**
 
 Assert all final paths remain under the configured root, keys follow `memory-cards/{user}/{card}/{import-id}-{role}.{ext}`, public URLs use the configured base, bytes/checksums match, missing-key deletion succeeds, `../` is impossible, and simulated second/third write failures remove every new file.
 
-- [ ] **Step 2: Run focused tests and confirm RED**
+- [x] **Step 2: Run focused tests and confirm RED**
 
 Expected: storage contract and implementation missing.
 
-- [ ] **Step 3: Implement atomic local writes**
+- [x] **Step 3: Implement atomic local writes**
 
 Create directories with mode 0755, copy each artifact into a random destination temporary name opened with exclusive creation, flush and close it, then rename atomically. Derive all keys internally from integers, a cryptographically random import ID, fixed roles, and fixed extensions. Verify the real destination parent remains within the configured root.
 
-- [ ] **Step 4: Implement idempotent key deletion and URL building**
+- [x] **Step 4: Implement idempotent key deletion and URL building**
 
 Reject absolute keys, null bytes, and any `..` segment. Missing files are successful deletions. Remove empty card/user directories after deleting known keys, but never recursively delete a path outside the configured `memory-cards` root.
 
-- [ ] **Step 5: Bind, test, and commit**
+- [x] **Step 5: Bind, test, and commit**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 ./vendor/bin/phpunit --filter LocalImageStorageTest
@@ -372,7 +372,7 @@ git commit -m "feat: store generated images locally"
 - `DeleteStoredMemoryCardImagesBusiness::deleteCard(int $userId, int $cardId): void`.
 - `DeleteStoredMemoryCardImagesBusiness::deleteUser(int $userId): void`.
 
-- [ ] **Step 1: Write failing import orchestration tests**
+- [x] **Step 1: Write failing import orchestration tests**
 
 Use fake downloader, processor, and storage services. Cover successful metadata/card/Job transaction, replacement old-key deletion after commit, failed database write cleanup of new keys, wrong user/card/job rejection, and no temporary source URL in either table.
 
@@ -383,23 +383,23 @@ self::assertStringStartsWith('http://e.test/storage/', Db::table('memory_cards')
 self::assertStringNotContainsString('s.coze.cn', json_encode(Db::table('memory_card_images')->where('memory_card_id', $cardId)->first()));
 ```
 
-- [ ] **Step 2: Write failing cleanup Business tests**
+- [x] **Step 2: Write failing cleanup Business tests**
 
 Cover ownership scope, all three keys, missing files, card metadata deletion, bounded user batches, multiple cards, and storage failure leaving metadata available for a later retry.
 
-- [ ] **Step 3: Run focused tests and confirm RED**
+- [x] **Step 3: Run focused tests and confirm RED**
 
 Expected: Businesses missing.
 
-- [ ] **Step 4: Implement import transaction and file rollback**
+- [x] **Step 4: Implement import transaction and file rollback**
 
 Download and process outside the database transaction, store all new files, then lock the owned card and generating-image Job. Upsert `memory_card_images`, set the card's large URL/key, and set Job `completed` with `completed_at`. Delete old keys only after commit. In `finally`, remove download/artifact temporary paths. On any failure before commit, delete new stored keys and rethrow the stable exception.
 
-- [ ] **Step 5: Implement ownership-scoped cleanup**
+- [x] **Step 5: Implement ownership-scoped cleanup**
 
 Delete storage keys before metadata. If storage deletion throws, keep metadata unchanged. `deleteUser` reads at most 100 image rows ordered by ID per loop and delegates to the same owned-card deletion behavior.
 
-- [ ] **Step 6: Bind, test, and commit**
+- [x] **Step 6: Bind, test, and commit**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 ./vendor/bin/phpunit --filter 'ImportMemoryCardImageBusinessTest|DeleteStoredMemoryCardImagesBusinessTest'
@@ -422,19 +422,19 @@ git commit -m "feat: import and clean up card images"
 - `ProcessAiGenerationJobBusiness` receives both `MemoryCardGenerator` and `ImportMemoryCardImageBusiness`.
 - `ImportMemoryCardImageBusiness` owns the final `completed` transition.
 
-- [ ] **Step 1: Extend failing processor tests**
+- [x] **Step 1: Extend failing processor tests**
 
 Assert successful text is persisted before the fake importer runs, success reaches completed through the importer, image exception leaves text/card payload persisted, image fields remain null or retain a previous application URL, Job uses the exception's stable code/failure type/safe message, and no source URL or raw message is persisted.
 
-- [ ] **Step 2: Extend Worker ACK tests**
+- [x] **Step 2: Extend Worker ACK tests**
 
 Assert stable image failure is ACKed after the Job becomes failed, while an unexpected import/persistence exception escapes and is not ACKed.
 
-- [ ] **Step 3: Run focused tests and confirm RED**
+- [x] **Step 3: Run focused tests and confirm RED**
 
 Expected: old processor completes directly and does not call importer.
 
-- [ ] **Step 4: Refactor the state machine**
+- [x] **Step 4: Refactor the state machine**
 
 After card validation, use a short transaction to persist text and move to `generating_image`. Call importer outside the transaction. Catch only `ImageImportException` and persist:
 
@@ -450,7 +450,7 @@ After card validation, use a short transaction to persist text and move to `gene
 
 Do not persist the source URL in `provider_payload`. Preserve the existing behavior for Coze and structural validation failures.
 
-- [ ] **Step 5: Update dependency construction, run tests, and commit**
+- [x] **Step 5: Update dependency construction, run tests, and commit**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 ./vendor/bin/phpunit --filter 'ProcessAiGenerationJobBusinessTest|AiGenerationWorkerTest'
@@ -470,7 +470,7 @@ git commit -m "feat: complete jobs after owned image import"
 **Interfaces:**
 - Produces the verified Stage 4 handoff and Stage 5 entry point.
 
-- [ ] **Step 1: Run deterministic final verification**
+- [x] **Step 1: Run deterministic final verification**
 
 ```bash
 docker exec -w /www/english-memory/.worktrees/stage-4-image-storage php82 php scripts/migrate.php
@@ -484,11 +484,11 @@ git diff --check
 
 Also syntax-check every changed PHP file and scan tracked files for PATs, bearer values, temporary Coze URLs in persistence code, and local temporary paths in API entities.
 
-- [ ] **Step 2: Merge locally and restart Webman**
+- [x] **Step 2: Merge locally and restart Webman**
 
 Use `superpowers:finishing-a-development-branch`, merge only after all tests pass, restart from `/www/english-memory`, and verify consumer/compensation/webman/monitor exit counts remain zero.
 
-- [ ] **Step 3: Run one controlled real image import smoke**
+- [x] **Step 3: Run one controlled real image import smoke**
 
 Create a temporary authenticated user, enqueue one `ambition` card, poll until terminal, and require `completed`. Verify:
 
@@ -499,11 +499,21 @@ curl -I http://e.test/storage/<small-key>
 
 Both must return 200 and `Content-Type: image/webp`. Read dimensions with GD and require longest edges at most 1024 and 512. Verify the original checksum matches stored bytes, no database URL contains `s.coze.cn`, then call cleanup and delete the temporary user.
 
-- [ ] **Step 4: Update handoff documents with exact evidence**
+- [x] **Step 4: Update handoff documents with exact evidence**
 
 Mark Stage 4 complete only with the actual migration number, test/assertion baseline, worker status, image MIME/dimensions/checksums, cleanup result, current branch state, and the next Stage 5 task. Do not mark Stage 5 deletion endpoint wiring complete.
 
-- [ ] **Step 5: Commit documentation and run a fresh final verification**
+Verified handoff evidence on 2026-07-19:
+
+- migration `0006_create_memory_card_images.sql` was applied and two consecutive migration runs skipped all files without checksum drift;
+- the fresh full suite passed with 116 tests and 472 assertions;
+- `ai-generation-consumer`, `ai-generation-compensation`, `webman`, and `monitor` all reported exit status/count `0/0` after restart;
+- real Coze Job `709` completed and stored only `http://e.test/storage/...`; no `memory_cards.image_url` contained `s.coze.cn`;
+- original SHA-256 matched stored bytes; large and small files were `image/webp` at 1024×1024 and 512×512, and both returned HTTP 200 through Nginx;
+- cleanup through `DeleteStoredMemoryCardImagesBusiness` left 0 temporary users, cards, Jobs, image metadata rows, and physical files;
+- Stage 4 was fast-forwarded into local `master`, its worktree and branch were removed, and Stage 5 starts with card library/sync design plus wiring image cleanup into card deletion.
+
+- [x] **Step 5: Commit documentation and run a fresh final verification**
 
 ```bash
 git add PROJECT_PLAN.md docs/superpowers/plans/2026-07-19-owned-memory-card-image-storage.md
