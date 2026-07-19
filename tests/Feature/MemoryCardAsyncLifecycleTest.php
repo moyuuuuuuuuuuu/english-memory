@@ -30,6 +30,8 @@ final class MemoryCardAsyncLifecycleTest extends TestCase
     protected function tearDown(): void
     {
         Db::table('ai_generation_jobs')->whereIn('user_id', [$this->userId, $this->otherUserId])->delete();
+        Db::table('memory_card_tags')->whereIn('user_id', [$this->userId, $this->otherUserId])->delete();
+        Db::table('tags')->whereIn('user_id', [$this->userId, $this->otherUserId])->delete();
         Db::table('memory_cards')->whereIn('user_id', [$this->userId, $this->otherUserId])->delete();
         Db::table('users')->whereIn('id', [$this->userId, $this->otherUserId])->delete();
         parent::tearDown();
@@ -60,6 +62,10 @@ final class MemoryCardAsyncLifecycleTest extends TestCase
         self::assertArrayNotHasKey('error_message', $failed['job']);
         self::assertStringNotContainsString('secret', json_encode($failed, JSON_THROW_ON_ERROR));
         self::assertStringNotContainsString('reasoning_content', json_encode($failed, JSON_THROW_ON_ERROR));
+        self::assertArrayHasKey('is_favorite', $completed['card']);
+        self::assertArrayHasKey('content_version', $completed['card']);
+        self::assertArrayHasKey('sync_version', $completed['card']);
+        self::assertArrayHasKey('tags', $completed['card']);
     }
 
     public function test_missing_and_foreign_cards_are_hidden(): void
@@ -68,6 +74,15 @@ final class MemoryCardAsyncLifecycleTest extends TestCase
 
         $this->assertError($this->detailResponse($this->userId, $foreignCard), 404, 'CARD_NOT_FOUND');
         $this->assertError($this->detailResponse($this->userId, 999999999), 404, 'CARD_NOT_FOUND');
+    }
+
+    public function test_deleted_cards_are_hidden_from_detail(): void
+    {
+        [$deletedCard] = $this->createCardAndJob($this->userId, 'completed', 'deleted-detail', [
+            'deleted_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->assertError($this->detailResponse($this->userId, $deletedCard), 404, 'CARD_NOT_FOUND');
     }
 
     public function test_failed_latest_job_can_be_retried_as_a_linked_child(): void

@@ -44,14 +44,11 @@ final readonly class AsyncMemoryCardResultEntity
         ]);
     }
 
-    public static function detail(array $card, ?array $job): self
+    public static function detail(MemoryCardViewEntity $view): self
     {
         return new self(200, [
             'success' => true,
-            'data' => [
-                'card' => $card,
-                'job' => $job,
-            ],
+            'data' => $view->toArray(),
         ]);
     }
 
