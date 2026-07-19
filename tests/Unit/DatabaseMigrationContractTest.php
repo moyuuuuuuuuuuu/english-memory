@@ -19,6 +19,7 @@ final class DatabaseMigrationContractTest extends TestCase
             ['review_events'],
             ['daily_learning_stats'],
             ['password_reset_tokens'],
+            ['memory_card_images'],
         ];
     }
 

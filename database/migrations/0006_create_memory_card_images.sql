@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS `memory_card_images` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `memory_card_id` BIGINT UNSIGNED NOT NULL,
+    `storage_driver` VARCHAR(32) NOT NULL,
+    `original_key` VARCHAR(512) NOT NULL,
+    `large_key` VARCHAR(512) NOT NULL,
+    `small_key` VARCHAR(512) NOT NULL,
+    `original_sha256` CHAR(64) NOT NULL,
+    `large_sha256` CHAR(64) NOT NULL,
+    `small_sha256` CHAR(64) NOT NULL,
+    `original_mime` VARCHAR(128) NOT NULL,
+    `original_width` INT UNSIGNED NOT NULL,
+    `original_height` INT UNSIGNED NOT NULL,
+    `original_bytes` BIGINT UNSIGNED NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `memory_card_images_card_unique` (`memory_card_id`),
+    KEY `memory_card_images_user_card_index` (`user_id`, `memory_card_id`),
+    CONSTRAINT `memory_card_images_user_fk` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `memory_card_images_card_fk` FOREIGN KEY (`memory_card_id`) REFERENCES `memory_cards` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
