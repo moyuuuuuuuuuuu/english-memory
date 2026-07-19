@@ -3,6 +3,8 @@
 use app\middleware\Authenticate;
 use app\businesses\ProcessAiGenerationJobBusiness;
 use app\businesses\CompensateQueuedAiJobsBusiness;
+use app\businesses\ImportMemoryCardImageBusiness;
+use app\businesses\DeleteStoredMemoryCardImagesBusiness;
 use app\processes\AiGenerationWorker;
 use app\services\CozeWorkflowService;
 use app\services\RedisAccessTokenStore;
@@ -36,6 +38,14 @@ use Psr\Container\ContainerInterface;
  */
 
 return [
+    ImportMemoryCardImageBusiness::class => static fn (ContainerInterface $container): ImportMemoryCardImageBusiness => new ImportMemoryCardImageBusiness(
+        $container->get(RemoteImageDownloader::class),
+        $container->get(ImageProcessor::class),
+        $container->get(ImageStorage::class),
+    ),
+    DeleteStoredMemoryCardImagesBusiness::class => static fn (ContainerInterface $container): DeleteStoredMemoryCardImagesBusiness => new DeleteStoredMemoryCardImagesBusiness(
+        $container->get(ImageStorage::class),
+    ),
     ImageStorage::class => static function (): ImageStorage {
         $image = config('image');
         $root = (string) $image['storage_local_root'];
