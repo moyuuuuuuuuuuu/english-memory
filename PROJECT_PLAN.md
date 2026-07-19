@@ -63,11 +63,11 @@ Route -> Controller -> Business -> Service / Model
 - [x] MySQL 与 Redis 配置全部通过环境变量读取。
 - [x] 创建数据库 `english_memory`。
 - [x] 创建迁移执行器 `php scripts/migrate.php`，记录文件名与 SHA-256。
-- [x] 完成并执行 `0001` 至 `0003` 三份迁移。
+- [x] 完成并执行 `0001` 至 `0005` 五份迁移。
 - [x] 已创建 `users`、`refresh_tokens`、`memory_cards`、`ai_generation_jobs`、`review_events`、`daily_learning_stats` 和 `migrations` 表。
 - [x] 迁移可重复执行，已执行文件内容变化时会拒绝继续。
 - [x] Redis `PING`、MySQL 查询、Nginx 配置和 `e.test` 路由均已验证。
-- [x] 当前完整测试基线：17 tests，33 assertions。
+- [x] `0005` 已扩展异步任务的幂等键、请求哈希、失败类型、父任务和派发时间。
 
 ### 账户、设备会话与鉴权
 
@@ -78,6 +78,19 @@ Route -> Controller -> Business -> Service / Model
 - [x] 退出时撤销当前 Access Token 与对应 Refresh Token。
 - [x] 新增 `password_reset_tokens` 迁移，实现中性找回响应、邮件服务边界、单次限时密码重置。
 - [x] 当前完整测试基线：48 tests，165 assertions。
+
+### 异步 AI 记忆卡生成
+
+- [x] `POST /api/memory-cards` 使用客户端 `Idempotency-Key`，提交后立即返回 Card ID 和 Job ID。
+- [x] Redis Streams + Consumer Group 只传输持久化 Job ID，支持 ACK 与陈旧 pending 消息接管。
+- [x] 已实现 `queued`、`generating_text`、`generating_image`、`completed`、`failed` 五态状态机。
+- [x] 已实现归属隔离的卡片详情和用户主动失败重试；重试通过 `parent_job_id` 创建子任务。
+- [x] Provider 失败不自动重试；派发补偿仅重新发布旧的 `queued` 任务。
+- [x] 同步生成接口仅在非 production 且 `ENABLE_SYNC_GENERATION=true` 时注册。
+- [x] 业务错误码集中到字符串枚举，Provider 原始异常、payload 和推理内容不向客户端泄露。
+- [x] Webman consumer、compensation、HTTP、monitor 四类进程已真实启动，退出计数均为 0。
+- [x] 真实扣子异步冒烟完成：1 条 Job、1 次 attempt，最终状态 `completed`，临时用户已清理。
+- [x] 当前完整测试基线：86 tests，343 assertions。
 
 ## 5. 后续执行路线
 
@@ -93,11 +106,12 @@ Route -> Controller -> Business -> Service / Model
 
 ### 阶段 3：异步 AI 记忆卡生成
 
-- [ ] 新建记忆卡时立即返回 Card ID 与 Job ID。
-- [ ] 使用 Redis 队列和 `app/processes/` 消费者调用扣子。
-- [ ] 持久化 `queued`、`generating_text`、`generating_image`、`completed`、`failed` 状态。
-- [ ] 增加请求幂等键、失败重试、用户限流与结果字段校验。
-- [ ] 暂时保留同步接口作为仅开发可用开关，移动端迁移完成后删除。
+- [x] 新建记忆卡时立即返回 Card ID 与 Job ID。
+- [x] 使用 Redis Streams 和 `app/processes/` 消费者调用扣子。
+- [x] 持久化 `queued`、`generating_text`、`generating_image`、`completed`、`failed` 状态。
+- [x] 增加请求幂等键、失败手动重试与结果字段校验。
+- [x] 暂时保留同步接口作为仅开发可用开关，移动端迁移完成后删除。
+- [ ] 用户级 AI 限流统一放入阶段 9 的安全与部署工作，避免与队列可靠性耦合。
 
 ### 阶段 4：应用自有图片存储
 
@@ -167,12 +181,12 @@ docker exec -w /www/english-memory php82 php start.php start -d
 docker exec -w /www/english-memory php82 vendor/bin/phpunit
 docker exec -w /www/english-memory php82 composer validate --no-check-publish
 docker exec nginx nginx -t
-curl -X POST http://e.test/api/memory-cards/generate \
+curl -X POST http://e.test/api/memory-cards \
   -H "Content-Type: application/json" \
-  -d '{"text":""}'
+  -d '{"text":"ambition"}'
 ```
 
-最后一个请求应返回 HTTP 422，错误码为 `INVALID_INPUT`。
+最后一个未认证请求应返回 HTTP 401，错误码为 `UNAUTHENTICATED`。同步生成路由默认不注册。
 
 ## 7. 每次开发的固定流程
 
@@ -186,6 +200,6 @@ curl -X POST http://e.test/api/memory-cards/generate \
 
 ## 8. 当前交接点
 
-下一次开发从“阶段 3：异步 AI 记忆卡生成”开始。第一项工作是为创建卡片立即返回 Card ID/Job ID、请求幂等键、队列状态和用户归属编写失败测试，然后新增必要迁移并实现 Redis 队列消费者。
+阶段 3 已合并到本地 `master`，迁移 `0005` 已应用，完整基线为 86 tests、343 assertions。当前无功能分支或未跟踪实现文件。
 
-阶段 2 已合并到本地 `master`。推送远程仓库后再开始阶段 3，确保新设备可以从远程仓库恢复。
+下一次开发从“阶段 4：应用自有图片存储”开始：先定义图片导入 Service 合同和安全下载测试，再把 `generating_image` 从临时 URL 持久化阶段扩展为应用自有图片导入阶段。用户级 AI 限流保留在阶段 9 统一实现。
