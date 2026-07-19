@@ -26,4 +26,10 @@ enum BusinessCode: string
     case InvalidImage = 'INVALID_IMAGE';
     case ImageProcessingFailed = 'IMAGE_PROCESSING_FAILED';
     case ImageStorageFailed = 'IMAGE_STORAGE_FAILED';
+    case CardVersionConflict = 'CARD_VERSION_CONFLICT';
+    case CardDeleted = 'CARD_DELETED';
+    case InvalidCursor = 'INVALID_CURSOR';
+    case TagNotFound = 'TAG_NOT_FOUND';
+    case TagNameConflict = 'TAG_NAME_CONFLICT';
+    case TagVersionConflict = 'TAG_VERSION_CONFLICT';
 }

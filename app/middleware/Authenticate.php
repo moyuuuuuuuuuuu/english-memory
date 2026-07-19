@@ -26,17 +26,19 @@ final class Authenticate implements MiddlewareInterface
             return $this->unauthenticated();
         }
 
-        $userId = $this->tokens->resolveAccessToken($matches[1]);
-        if ($userId === null) {
+        $identity = $this->tokens->resolveAccessToken($matches[1]);
+        if ($identity === null) {
             return $this->unauthenticated();
         }
 
-        $userIsActive = User::query()->whereKey($userId)->where('status', 'active')->exists();
-        if (!$userIsActive || !$request instanceof AppRequest) {
+        $user = User::query()->whereKey($identity->userId())->where('status', 'active')->first();
+        if ($user === null
+            || (int) $user->session_version !== $identity->sessionVersion()
+            || !$request instanceof AppRequest) {
             return $this->unauthenticated();
         }
 
-        $request->setAuthenticatedUserId($userId);
+        $request->setAuthenticatedUserId($identity->userId());
 
         return $handler($request);
     }

@@ -37,6 +37,7 @@ final class RetryMemoryCardBusiness
         $cardExists = MemoryCard::query()
             ->where('user_id', $userId)
             ->where('id', $cardId)
+            ->whereNull('deleted_at')
             ->exists();
         if (!$cardExists) {
             return AsyncMemoryCardResultEntity::failure(404, BusinessCode::CardNotFound, '记忆卡不存在。');

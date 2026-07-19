@@ -32,11 +32,14 @@ final class ImportMemoryCardImageBusinessTest extends TestCase
             'email' => 'codex-image-import@example.com',
             'password_hash' => password_hash('SecurePass123!', PASSWORD_DEFAULT),
             'status' => 'active',
+            'sync_version' => 3,
             'created_at' => $now,
             'updated_at' => $now,
         ]);
         $this->cardId = (int) Db::table('memory_cards')->insertGetId([
             'user_id' => $this->userId,
+            'sync_version' => 3,
+            'content_version' => 1,
             'source_text' => 'ambition',
             'normalized_text' => 'ambition',
             'content_type' => 'word',
@@ -88,6 +91,8 @@ final class ImportMemoryCardImageBusinessTest extends TestCase
         self::assertSame($stored->smallSha256(), $image['small_sha256']);
         self::assertStringNotContainsString('s.coze.cn', json_encode([$card, $job, $image], JSON_THROW_ON_ERROR));
         self::assertSame([], $storage->deletedBatches);
+        self::assertSame(4, (int) $card['sync_version']);
+        self::assertSame(4, (int) Db::table('users')->where('id', $this->userId)->value('sync_version'));
     }
 
     public function test_replacement_deletes_old_keys_only_after_new_metadata_commits(): void
@@ -135,6 +140,65 @@ final class ImportMemoryCardImageBusinessTest extends TestCase
 
         self::assertSame('generating_image', Db::table('ai_generation_jobs')->where('id', $this->jobId)->value('status'));
         self::assertSame(0, Db::table('memory_card_images')->where('memory_card_id', $this->cardId)->count());
+    }
+
+    public function test_regeneration_atomically_swaps_card_image_and_versions_without_touching_learning_state(): void
+    {
+        Db::table('memory_cards')->where('id', $this->cardId)->update([
+            'is_favorite' => 1,
+            'review_stage' => 4,
+            'next_review_at' => '2030-01-02 03:04:05',
+            'image_url' => 'http://e.test/storage/old-large.webp',
+            'image_storage_key' => 'old-large.webp',
+        ]);
+        Db::table('ai_generation_jobs')->where('id', $this->jobId)->update([
+            'operation' => 'regenerate',
+            'pending_card_payload' => json_encode(['word' => 'resilient'], JSON_THROW_ON_ERROR),
+        ]);
+        Db::table('memory_card_images')->insert([
+            'user_id' => $this->userId,
+            'memory_card_id' => $this->cardId,
+            'storage_driver' => 'local',
+            'original_key' => 'old-original.png',
+            'large_key' => 'old-large.webp',
+            'small_key' => 'old-small.webp',
+            'original_sha256' => str_repeat('1', 64),
+            'large_sha256' => str_repeat('2', 64),
+            'small_sha256' => str_repeat('3', 64),
+            'original_mime' => 'image/png',
+            'original_width' => 640,
+            'original_height' => 480,
+            'original_bytes' => 100,
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+        [$downloader, $processor, $storage, $stored] = $this->boundaries();
+        $replacement = [
+            'success' => true,
+            'word' => 'resilient',
+            'normalized_text' => 'resilient',
+            'meanings' => [['en' => 'able to recover', 'zh' => '坚韧的']],
+            'story' => 'new story',
+            'example' => ['en' => 'She is resilient.', 'zh' => '她很坚韧。'],
+        ];
+
+        (new ImportMemoryCardImageBusiness($downloader, $processor, $storage))
+            ->import($this->userId, $this->cardId, $this->jobId, 'https://s.coze.cn/t/source', $replacement);
+
+        $card = (array) Db::table('memory_cards')->where('id', $this->cardId)->first();
+        $job = (array) Db::table('ai_generation_jobs')->where('id', $this->jobId)->first();
+        self::assertSame('resilient', $card['normalized_text']);
+        self::assertSame('resilient', json_decode($card['card_payload'], true, 512, JSON_THROW_ON_ERROR)['word']);
+        self::assertSame($stored->largeUrl(), $card['image_url']);
+        self::assertSame(2, (int) $card['content_version']);
+        self::assertSame(4, (int) $card['sync_version']);
+        self::assertSame(4, (int) Db::table('users')->where('id', $this->userId)->value('sync_version'));
+        self::assertSame(1, (int) $card['is_favorite']);
+        self::assertSame(4, (int) $card['review_stage']);
+        self::assertSame('2030-01-02 03:04:05', $card['next_review_at']);
+        self::assertSame('completed', $job['status']);
+        self::assertNull($job['pending_card_payload']);
+        self::assertSame([['old-original.png', 'old-large.webp', 'old-small.webp']], $storage->deletedBatches);
     }
 
     private function boundaries(bool $invalidDatabaseKey = false): array

@@ -15,11 +15,13 @@ final class TokenServiceTest extends TestCase
         $store = new InMemoryAccessTokenStore();
         $service = new TokenService($store, 900);
 
-        $issued = $service->issueAccessToken(42);
+        $issued = $service->issueAccessToken(42, 7);
 
         self::assertSame(900, $issued['expires_in']);
         self::assertGreaterThanOrEqual(43, strlen($issued['token']));
-        self::assertSame(42, $service->resolveAccessToken($issued['token']));
+        $identity = $service->resolveAccessToken($issued['token']);
+        self::assertSame(42, $identity?->userId());
+        self::assertSame(7, $identity?->sessionVersion());
         self::assertArrayHasKey('auth:access:' . hash('sha256', $issued['token']), $store->values);
         self::assertArrayNotHasKey('auth:access:' . $issued['token'], $store->values);
         self::assertSame(900, $store->ttl);
@@ -37,11 +39,19 @@ final class TokenServiceTest extends TestCase
     {
         $store = new InMemoryAccessTokenStore();
         $service = new TokenService($store, 900);
-        $issued = $service->issueAccessToken(42);
+        $issued = $service->issueAccessToken(42, 7);
 
         $service->revokeAccessToken($issued['token']);
 
         self::assertNull($service->resolveAccessToken($issued['token']));
+    }
+
+    public function test_it_rejects_malformed_stored_identity_values(): void
+    {
+        $store = new InMemoryAccessTokenStore();
+        $store->values['auth:access:' . hash('sha256', 'bad')] = '42';
+
+        self::assertNull((new TokenService($store, 900))->resolveAccessToken('bad'));
     }
 }
 

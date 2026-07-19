@@ -27,9 +27,24 @@ final class RefreshSessionBusiness
             return $this->invalidToken();
         }
 
-        $rotated = Db::transaction(function () use ($plainToken): ?array {
+        $candidate = RefreshToken::query()
+            ->where('token_hash', hash('sha256', $plainToken))
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', date('Y-m-d H:i:s'))
+            ->first();
+        if ($candidate === null) {
+            return $this->invalidToken();
+        }
+
+        $rotated = Db::transaction(function () use ($plainToken, $candidate): ?array {
+            $user = User::query()->whereKey($candidate->user_id)->where('status', 'active')->lockForUpdate()->first();
+            if ($user === null) {
+                return null;
+            }
+
             $current = RefreshToken::query()
                 ->where('token_hash', hash('sha256', $plainToken))
+                ->where('user_id', (int) $user->id)
                 ->whereNull('revoked_at')
                 ->where('expires_at', '>', date('Y-m-d H:i:s'))
                 ->lockForUpdate()
@@ -39,8 +54,7 @@ final class RefreshSessionBusiness
                 return null;
             }
 
-            $user = User::query()->whereKey($current->user_id)->where('status', 'active')->first();
-            if ($user === null) {
+            if ((int) $current->session_version !== (int) $user->session_version) {
                 return null;
             }
 
@@ -53,11 +67,16 @@ final class RefreshSessionBusiness
                 'user_id' => (int) $user->id,
                 'token_hash' => hash('sha256', $nextPlainToken),
                 'device_name' => $current->device_name,
+                'session_version' => (int) $user->session_version,
                 'expires_at' => date('Y-m-d H:i:s', time() + $this->refreshTtlSeconds),
                 'created_at' => $now,
             ]);
 
-            return ['user_id' => (int) $user->id, 'token' => $nextPlainToken];
+            return [
+                'user_id' => (int) $user->id,
+                'session_version' => (int) $user->session_version,
+                'token' => $nextPlainToken,
+            ];
         });
 
         if ($rotated === null) {
@@ -65,7 +84,7 @@ final class RefreshSessionBusiness
         }
 
         return AuthResultEntity::refreshed(
-            $this->tokens->issueAccessToken($rotated['user_id']),
+            $this->tokens->issueAccessToken($rotated['user_id'], $rotated['session_version']),
             ['token' => $rotated['token'], 'expires_in' => $this->refreshTtlSeconds],
         );
     }

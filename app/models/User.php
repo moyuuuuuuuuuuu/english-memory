@@ -16,7 +16,14 @@ final class User extends Model
         'password_hash',
         'status',
         'last_login_at',
+        'sync_version',
+        'session_version',
     ];
 
     protected $hidden = ['password_hash'];
+
+    protected $casts = [
+        'sync_version' => 'integer',
+        'session_version' => 'integer',
+    ];
 }

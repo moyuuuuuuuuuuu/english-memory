@@ -60,7 +60,7 @@ final class AuthenticateTest extends TestCase
     {
         $store = new AuthMemoryTokenStore();
         $tokens = new TokenService($store, 900);
-        $issued = $tokens->issueAccessToken($this->userId);
+        $issued = $tokens->issueAccessToken($this->userId, 0);
 
         $response = (new Authenticate($tokens))->process(
             $this->request($issued['token']),
@@ -71,6 +71,21 @@ final class AuthenticateTest extends TestCase
         );
 
         self::assertSame(200, $response->getStatusCode());
+    }
+
+    public function test_it_rejects_an_access_token_from_a_replaced_session(): void
+    {
+        $store = new AuthMemoryTokenStore();
+        $tokens = new TokenService($store, 900);
+        $issued = $tokens->issueAccessToken($this->userId, 0);
+        Db::table('users')->where('id', $this->userId)->update(['session_version' => 1]);
+
+        $response = (new Authenticate($tokens))->process(
+            $this->request($issued['token']),
+            static fn (): Response => json(['success' => true]),
+        );
+
+        $this->assertUnauthenticated($response);
     }
 
     private function middleware(AccessTokenStore $store): Authenticate

@@ -80,6 +80,11 @@ final class CreateMemoryCardControllerTest extends TestCase
         $job = (array) Db::table('ai_generation_jobs')->where('id', $data['job_id'])->first();
         self::assertSame('ambition', $card['source_text']);
         self::assertSame($this->userId, (int) $card['user_id']);
+        self::assertGreaterThan(0, (int) $card['sync_version']);
+        self::assertSame(
+            (int) $card['sync_version'],
+            (int) Db::table('users')->where('id', $this->userId)->value('sync_version'),
+        );
         self::assertSame('create-one', $job['idempotency_key']);
         self::assertNotNull($job['dispatched_at']);
     }

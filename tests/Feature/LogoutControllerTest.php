@@ -29,11 +29,17 @@ final class LogoutControllerTest extends TestCase
             'expires_at' => date('Y-m-d H:i:s', time() + 3600),
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+        $otherRefreshId = (int) Db::table('refresh_tokens')->insertGetId([
+            'user_id' => $userId,
+            'token_hash' => hash('sha256', 'other-refresh-token'),
+            'expires_at' => date('Y-m-d H:i:s', time() + 3600),
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
 
         try {
             $store = new LogoutMemoryTokenStore();
             $tokens = new TokenService($store, 900);
-            $access = $tokens->issueAccessToken($userId)['token'];
+            $access = $tokens->issueAccessToken($userId, 0)['token'];
             $request = $this->request($userId, $access, $plainRefreshToken);
 
             $response = (new LogoutController(new LogoutBusiness($tokens)))($request);
@@ -42,6 +48,8 @@ final class LogoutControllerTest extends TestCase
             self::assertTrue(json_decode($response->rawBody(), true)['success']);
             self::assertNull($tokens->resolveAccessToken($access));
             self::assertNotNull(Db::table('refresh_tokens')->where('id', $refreshId)->value('revoked_at'));
+            self::assertNotNull(Db::table('refresh_tokens')->where('id', $otherRefreshId)->value('revoked_at'));
+            self::assertSame(1, (int) Db::table('users')->where('id', $userId)->value('session_version'));
         } finally {
             Db::table('users')->where('id', $userId)->delete();
         }

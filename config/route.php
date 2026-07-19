@@ -16,7 +16,16 @@ use app\businesses\CurrentUserBusiness;
 use app\common\base\SyncGenerationRoutePolicy;
 use app\businesses\CreateMemoryCardBusiness;
 use app\businesses\GetMemoryCardBusiness;
+use app\businesses\ListMemoryCardsBusiness;
+use app\businesses\UpdateMemoryCardBusiness;
+use app\businesses\DeleteMemoryCardBusiness;
+use app\businesses\DeleteStoredMemoryCardImagesBusiness;
+use app\businesses\ListTagsBusiness;
+use app\businesses\RenameTagBusiness;
+use app\businesses\DeleteTagBusiness;
+use app\businesses\GetSyncChangesBusiness;
 use app\businesses\RetryMemoryCardBusiness;
+use app\businesses\RegenerateMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
 use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
@@ -27,7 +36,15 @@ use app\businesses\ResetPasswordBusiness;
 use app\controllers\CurrentUserController;
 use app\controllers\CreateMemoryCardController;
 use app\controllers\GetMemoryCardController;
+use app\controllers\ListMemoryCardsController;
+use app\controllers\UpdateMemoryCardController;
+use app\controllers\DeleteMemoryCardController;
+use app\controllers\ListTagsController;
+use app\controllers\RenameTagController;
+use app\controllers\DeleteTagController;
+use app\controllers\GetSyncChangesController;
 use app\controllers\RetryMemoryCardController;
+use app\controllers\RegenerateMemoryCardController;
 use app\controllers\ForgotPasswordController;
 use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
@@ -88,14 +105,50 @@ Route::post('/api/memory-cards', static function (Request $request) {
     )))($request);
 })->middleware([Authenticate::class]);
 
+Route::get('/api/memory-cards', static function (Request $request) {
+    return (new ListMemoryCardsController(new ListMemoryCardsBusiness()))($request);
+})->middleware([Authenticate::class]);
+
 Route::get('/api/memory-cards/{id}', static function (Request $request, string $id) {
     return (new GetMemoryCardController(new GetMemoryCardBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::patch('/api/memory-cards/{id}', static function (Request $request, string $id) {
+    return (new UpdateMemoryCardController(new UpdateMemoryCardBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::delete('/api/memory-cards/{id}', static function (Request $request, string $id) {
+    return (new DeleteMemoryCardController(new DeleteMemoryCardBusiness(
+        Container::get(DeleteStoredMemoryCardImagesBusiness::class),
+    )))($request, $id);
 })->middleware([Authenticate::class]);
 
 Route::post('/api/memory-cards/{id}/retry', static function (Request $request, string $id) {
     return (new RetryMemoryCardController(new RetryMemoryCardBusiness(
         Container::get(AiGenerationQueue::class),
     )))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::post('/api/memory-cards/{id}/regenerate', static function (Request $request, string $id) {
+    return (new RegenerateMemoryCardController(new RegenerateMemoryCardBusiness(
+        Container::get(AiGenerationQueue::class),
+    )))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::get('/api/tags', static function (Request $request) {
+    return (new ListTagsController(new ListTagsBusiness()))($request);
+})->middleware([Authenticate::class]);
+
+Route::patch('/api/tags/{id}', static function (Request $request, string $id) {
+    return (new RenameTagController(new RenameTagBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::delete('/api/tags/{id}', static function (Request $request, string $id) {
+    return (new DeleteTagController(new DeleteTagBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::get('/api/sync/changes', static function (Request $request) {
+    return (new GetSyncChangesController(new GetSyncChangesBusiness()))($request);
 })->middleware([Authenticate::class]);
 
 if (SyncGenerationRoutePolicy::enabled(

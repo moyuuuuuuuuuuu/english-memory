@@ -15,8 +15,10 @@ final class AiGenerationJob extends Model
         'memory_card_id',
         'idempotency_key',
         'request_hash',
+        'operation',
         'request_payload',
         'provider_payload',
+        'pending_card_payload',
         'status',
         'error_code',
         'error_message',
@@ -31,6 +33,7 @@ final class AiGenerationJob extends Model
     protected $casts = [
         'request_payload' => 'array',
         'provider_payload' => 'array',
+        'pending_card_payload' => 'array',
         'dispatched_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
@@ -38,6 +41,7 @@ final class AiGenerationJob extends Model
 
     protected $hidden = [
         'provider_payload',
+        'pending_card_payload',
         'error_message',
     ];
 
