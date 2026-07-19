@@ -26,6 +26,7 @@ use app\businesses\RenameTagBusiness;
 use app\businesses\DeleteTagBusiness;
 use app\businesses\GetSyncChangesBusiness;
 use app\businesses\GetTodayReviewsBusiness;
+use app\businesses\SubmitReviewAnswerBusiness;
 use app\businesses\RetryMemoryCardBusiness;
 use app\businesses\RegenerateMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
@@ -47,6 +48,7 @@ use app\controllers\RenameTagController;
 use app\controllers\DeleteTagController;
 use app\controllers\GetSyncChangesController;
 use app\controllers\GetTodayReviewsController;
+use app\controllers\SubmitReviewAnswerController;
 use app\controllers\RetryMemoryCardController;
 use app\controllers\RegenerateMemoryCardController;
 use app\controllers\ForgotPasswordController;
@@ -161,6 +163,10 @@ Route::get('/api/sync/changes', static function (Request $request) {
 
 Route::get('/api/reviews/today', static function (Request $request) {
     return (new GetTodayReviewsController(new GetTodayReviewsBusiness()))($request);
+})->middleware([Authenticate::class]);
+
+Route::post('/api/reviews/{id}/answer', static function (Request $request, string $id) {
+    return (new SubmitReviewAnswerController(new SubmitReviewAnswerBusiness()))($request, $id);
 })->middleware([Authenticate::class]);
 
 if (SyncGenerationRoutePolicy::enabled(
