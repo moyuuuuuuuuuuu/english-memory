@@ -12,12 +12,18 @@
  * @license   http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
+use app\businesses\RegisterBusiness;
 use app\businesses\GenerateMemoryCardBusiness;
+use app\controllers\RegisterController;
 use app\controllers\GenerateMemoryCardController;
 use app\services\CozeWorkflowService;
 use GuzzleHttp\Client;
 use support\Request;
 use Webman\Route;
+
+Route::post('/api/auth/register', static function (Request $request) {
+    return (new RegisterController(new RegisterBusiness()))($request);
+});
 
 Route::post('/api/memory-cards/generate', static function (Request $request) {
     $coze = config('coze');
