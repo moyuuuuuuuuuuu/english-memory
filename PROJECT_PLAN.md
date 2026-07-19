@@ -212,10 +212,10 @@ curl -X POST http://e.test/api/memory-cards \
 
 ## 8. 当前交接点
 
-阶段 6 已在分支 `codex/stage-6-reviews` 完成实现并等待合并到本地 `master`。迁移 `0008_add_review_scheduling_and_game_data.sql` 已应用，连续执行两次均幂等跳过。完整基线为 187 tests、875 assertions；43 个阶段变更 PHP 文件语法检查通过，Composer 配置有效，Redis `PONG`，Nginx 配置检查通过，敏感信息与真实扣子临时短链扫描无命中。
+阶段 6 已于 2026-07-19 快进合并到本地 `master`，功能分支与隔离 worktree 已清理。迁移 `0008_add_review_scheduling_and_game_data.sql` 已应用，连续执行两次均幂等跳过。完整基线为 187 tests、875 assertions；43 个阶段变更 PHP 文件语法检查通过，Composer 配置有效，Redis `PONG`，Nginx 配置检查通过，敏感信息与真实扣子临时短链扫描无命中。
 
 阶段 6 新增 `GET /api/reviews/today`、`POST /api/reviews/{id}/answer`、`GET /api/stats/overview` 和 `PATCH /api/auth/me/timezone`。固定间隔为 10 分钟、1/3/7/14/30/60/120 天；错误答案强制 `again`，正确答案保留 `hard/good/easy`。答案提交按用户和幂等键去重，同一请求字节稳定重放，不同请求返回冲突；每个唯一答案只分配一个用户同步版本。统计包含今日/累计准确率、XP、等级、连对、连续学习日及待复习/新卡数量。
 
-合并后的 Worker 重启与无 Coze HTTP 烟测仍是本阶段最后的运行时门禁；完成后需在本节补记四类进程状态、重放响应、统计响应、时区更新和临时数据清理结果。
+合并后 Webman 已重启，ai-generation-consumer、ai-generation-compensation、webman、monitor 的 `exit_status` 与 `exit_count` 均为 `0/0`。无 Coze HTTP 冒烟验证旧设备 401、新设备 200；今日队列返回临时卡；正确答案的首次响应与幂等重放字节一致，错误答案强制 `again`；累计 2 次复习、1 次正确、12 XP，卡片同步版本与复习次数均为 2；时区成功更新为 `America/New_York`。临时账户及关联数据清理后剩余 0。
 
 本阶段运行时门禁通过后，下一次开发从“阶段 7：Flutter 基础与本地 OCR”开始。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。

@@ -187,7 +187,7 @@
 - Produces the verified Stage 6 handoff and Stage 7 Flutter entry point.
 
 - [x] **Step 1: Run deterministic verification:** migration twice, `composer validate --no-check-publish`, full PHPUnit, changed-file `php -l`, `git diff --check`, Redis `PING`, `nginx -t`, and tracked secret/temp-URL scan.
-- [ ] **Step 2: Use `superpowers:finishing-a-development-branch`** to merge locally only after tests pass; restart Webman and require consumer, compensation, webman, and monitor exit status/count `0/0`.
-- [ ] **Step 3: Run controlled HTTP smoke without Coze:** create a temporary completed card, replace device session, fetch today queue, submit/replay one correct answer, submit one incorrect answer, verify sync and statistics, update timezone, and remove all fixtures.
-- [ ] **Step 4: Update handoff evidence** with migration `0008`, final test/assertion count, route list, scheduler intervals, timezone boundary result, replay evidence, statistics, Worker status, branch state, and Stage 7 next step.
-- [ ] **Step 5: Commit docs and run fresh final tests** with `git commit -m "docs: complete spaced review handoff"`.
+- [x] **Step 2: Use `superpowers:finishing-a-development-branch`** to merge locally only after tests pass; restart Webman and require consumer, compensation, webman, and monitor exit status/count `0/0`.
+- [x] **Step 3: Run controlled HTTP smoke without Coze:** create a temporary completed card, replace device session, fetch today queue, submit/replay one correct answer, submit one incorrect answer, verify sync and statistics, update timezone, and remove all fixtures.
+- [x] **Step 4: Update handoff evidence** with migration `0008`, final test/assertion count, route list, scheduler intervals, timezone boundary result, replay evidence, statistics, Worker status, branch state, and Stage 7 next step.
+- [x] **Step 5: Commit docs and run fresh final tests** with `git commit -m "docs: complete spaced review handoff"`.
