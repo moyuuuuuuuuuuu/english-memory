@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\middleware;
 
+use app\common\enums\BusinessCode;
+
 use app\models\User;
 use app\services\TokenService;
 use support\Request as AppRequest;
@@ -44,7 +46,7 @@ final class Authenticate implements MiddlewareInterface
         return json([
             'success' => false,
             'error' => [
-                'code' => 'UNAUTHENTICATED',
+                'code' => BusinessCode::Unauthenticated->value,
                 'message' => '请先登录。',
             ],
         ])->withStatus(401);

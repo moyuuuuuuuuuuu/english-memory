@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\businesses;
 
+use app\common\enums\BusinessCode;
+
 use app\entities\AuthResultEntity;
 use app\models\RefreshToken;
 use app\models\User;
@@ -70,6 +72,6 @@ final class RefreshSessionBusiness
 
     private function invalidToken(): AuthResultEntity
     {
-        return AuthResultEntity::failure(401, 'INVALID_REFRESH_TOKEN', '刷新凭证无效或已过期。');
+        return AuthResultEntity::failure(401, BusinessCode::InvalidRefreshToken, '刷新凭证无效或已过期。');
     }
 }

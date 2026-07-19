@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\businesses;
 
+use app\common\enums\BusinessCode;
+
 use app\entities\AuthenticatedUserEntity;
 use app\entities\AuthResultEntity;
 use app\models\User;
@@ -35,7 +37,7 @@ final class LoginBusiness
         }
 
         if ($user->status !== 'active') {
-            return AuthResultEntity::failure(403, 'ACCOUNT_DISABLED', '该账户当前不可用。');
+            return AuthResultEntity::failure(403, BusinessCode::AccountDisabled, '该账户当前不可用。');
         }
 
         $user->last_login_at = date('Y-m-d H:i:s');
@@ -59,6 +61,6 @@ final class LoginBusiness
 
     private function invalidCredentials(): AuthResultEntity
     {
-        return AuthResultEntity::failure(401, 'INVALID_CREDENTIALS', '账号或密码错误。');
+        return AuthResultEntity::failure(401, BusinessCode::InvalidCredentials, '账号或密码错误。');
     }
 }

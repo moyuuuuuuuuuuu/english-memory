@@ -2,6 +2,8 @@
 
 namespace app\businesses;
 
+use app\common\enums\BusinessCode;
+
 use app\entities\MemoryCardGenerationEntity;
 use app\services\contracts\MemoryCardGenerator;
 
@@ -21,12 +23,12 @@ final class GenerateMemoryCardBusiness
     ): MemoryCardGenerationEntity {
         $text = trim($text);
         if ($text === '') {
-            return MemoryCardGenerationEntity::failure(422, 'INVALID_INPUT', '请输入英文单词或句子。');
+            return MemoryCardGenerationEntity::failure(422, BusinessCode::InvalidInput, '请输入英文单词或句子。');
         }
 
         if (!in_array($contentType, self::CONTENT_TYPES, true)
             || !in_array($memoryStyle, self::MEMORY_STYLES, true)) {
-            return MemoryCardGenerationEntity::failure(422, 'INVALID_INPUT', '参数值不在允许范围内。');
+            return MemoryCardGenerationEntity::failure(422, BusinessCode::InvalidInput, '参数值不在允许范围内。');
         }
 
         try {
@@ -34,7 +36,7 @@ final class GenerateMemoryCardBusiness
         } catch (\Throwable) {
             return MemoryCardGenerationEntity::failure(
                 502,
-                'AI_PROVIDER_ERROR',
+                BusinessCode::AiProviderError,
                 '记忆卡生成服务暂时不可用，请稍后重试。',
             );
         }
@@ -42,7 +44,7 @@ final class GenerateMemoryCardBusiness
         if (!$result->isSuccess()) {
             return MemoryCardGenerationEntity::failure(
                 422,
-                'GENERATION_FAILED',
+                BusinessCode::GenerationFailed,
                 $result->error() ?: '无法生成记忆卡。',
             );
         }

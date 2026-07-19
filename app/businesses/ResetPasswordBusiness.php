@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\businesses;
 
+use app\common\enums\BusinessCode;
+
 use app\entities\AuthResultEntity;
 use app\models\PasswordResetToken;
 use app\models\User;
@@ -47,6 +49,6 @@ final class ResetPasswordBusiness
 
     private function invalidToken(): AuthResultEntity
     {
-        return AuthResultEntity::failure(422, 'INVALID_RESET_TOKEN', '重置凭证无效或已过期。');
+        return AuthResultEntity::failure(422, BusinessCode::InvalidResetToken, '重置凭证无效或已过期。');
     }
 }

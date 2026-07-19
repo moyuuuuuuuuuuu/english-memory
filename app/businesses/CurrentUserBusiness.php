@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\businesses;
 
+use app\common\enums\BusinessCode;
+
 use app\entities\AuthenticatedUserEntity;
 use app\entities\AuthResultEntity;
 use app\models\User;
@@ -14,7 +16,7 @@ final class CurrentUserBusiness
     {
         $user = User::query()->whereKey($userId)->where('status', 'active')->first();
         if ($user === null) {
-            return AuthResultEntity::failure(401, 'UNAUTHENTICATED', '请先登录。');
+            return AuthResultEntity::failure(401, BusinessCode::Unauthenticated, '请先登录。');
         }
 
         return AuthResultEntity::currentUser(

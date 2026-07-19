@@ -2,6 +2,8 @@
 
 namespace app\entities;
 
+use app\common\enums\BusinessCode;
+
 final class MemoryCardGenerationEntity
 {
     private function __construct(
@@ -22,12 +24,12 @@ final class MemoryCardGenerationEntity
         ]);
     }
 
-    public static function failure(int $httpStatus, string $code, string $message): self
+    public static function failure(int $httpStatus, BusinessCode $code, string $message): self
     {
         return new self($httpStatus, [
             'success' => false,
             'error' => [
-                'code' => $code,
+                'code' => $code->value,
                 'message' => $message,
             ],
         ]);

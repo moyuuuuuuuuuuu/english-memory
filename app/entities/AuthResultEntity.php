@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace app\entities;
 
+use app\common\enums\BusinessCode;
+
 final class AuthResultEntity
 {
     private function __construct(
@@ -26,12 +28,12 @@ final class AuthResultEntity
         ]);
     }
 
-    public static function failure(int $httpStatus, string $code, string $message): self
+    public static function failure(int $httpStatus, BusinessCode $code, string $message): self
     {
         return new self($httpStatus, [
             'success' => false,
             'error' => [
-                'code' => $code,
+                'code' => $code->value,
                 'message' => $message,
             ],
         ]);
