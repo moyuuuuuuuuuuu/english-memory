@@ -76,7 +76,7 @@ final class LoginBusiness
         $activeUser = $session['user'];
 
         return AuthResultEntity::authenticated(
-            new AuthenticatedUserEntity((int) $activeUser->id, $activeUser->email, $activeUser->username),
+            new AuthenticatedUserEntity((int) $activeUser->id, $activeUser->email, $activeUser->username, (string) $activeUser->timezone),
             $this->tokens->issueAccessToken((int) $activeUser->id, $session['session_version']),
             ['token' => $session['refresh_token'], 'expires_in' => $this->refreshTtlSeconds],
         );

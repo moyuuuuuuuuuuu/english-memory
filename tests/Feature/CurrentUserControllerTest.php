@@ -32,6 +32,7 @@ final class CurrentUserControllerTest extends TestCase
             self::assertTrue($payload['success']);
             self::assertSame($userId, $payload['data']['user']['id']);
             self::assertSame('codex-current-user@example.com', $payload['data']['user']['email']);
+            self::assertSame('Asia/Shanghai', $payload['data']['user']['timezone']);
             self::assertArrayNotHasKey('password_hash', $payload['data']['user']);
         } finally {
             Db::table('users')->where('id', $userId)->delete();

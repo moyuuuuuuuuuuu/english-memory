@@ -13,6 +13,7 @@
  */
 
 use app\businesses\CurrentUserBusiness;
+use app\businesses\UpdateTimezoneBusiness;
 use app\common\base\SyncGenerationRoutePolicy;
 use app\businesses\CreateMemoryCardBusiness;
 use app\businesses\GetMemoryCardBusiness;
@@ -34,6 +35,7 @@ use app\businesses\LogoutBusiness;
 use app\businesses\RefreshSessionBusiness;
 use app\businesses\ResetPasswordBusiness;
 use app\controllers\CurrentUserController;
+use app\controllers\UpdateTimezoneController;
 use app\controllers\CreateMemoryCardController;
 use app\controllers\GetMemoryCardController;
 use app\controllers\ListMemoryCardsController;
@@ -75,6 +77,10 @@ Route::post('/api/auth/login', static function (Request $request) {
 
 Route::get('/api/auth/me', static function (Request $request) {
     return (new CurrentUserController(new CurrentUserBusiness()))($request);
+})->middleware([Authenticate::class]);
+
+Route::patch('/api/auth/me/timezone', static function (Request $request) {
+    return (new UpdateTimezoneController(new UpdateTimezoneBusiness()))($request);
 })->middleware([Authenticate::class]);
 
 Route::post('/api/auth/refresh', static function (Request $request) {

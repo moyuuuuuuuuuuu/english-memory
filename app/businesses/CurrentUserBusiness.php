@@ -20,7 +20,7 @@ final class CurrentUserBusiness
         }
 
         return AuthResultEntity::currentUser(
-            new AuthenticatedUserEntity((int) $user->id, $user->email, $user->username),
+            new AuthenticatedUserEntity((int) $user->id, $user->email, $user->username, (string) $user->timezone),
         );
     }
 }

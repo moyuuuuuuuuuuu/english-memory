@@ -10,6 +10,7 @@ final class AuthenticatedUserEntity
         private readonly int $id,
         private readonly ?string $email,
         private readonly ?string $username,
+        private readonly string $timezone = 'Asia/Shanghai',
     ) {
     }
 
@@ -24,6 +25,7 @@ final class AuthenticatedUserEntity
             'id' => $this->id,
             'email' => $this->email,
             'username' => $this->username,
+            'timezone' => $this->timezone,
         ];
     }
 }
