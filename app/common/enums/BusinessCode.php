@@ -31,4 +31,5 @@ enum BusinessCode: string
     case InvalidCursor = 'INVALID_CURSOR';
     case TagNotFound = 'TAG_NOT_FOUND';
     case TagNameConflict = 'TAG_NAME_CONFLICT';
+    case TagVersionConflict = 'TAG_VERSION_CONFLICT';
 }

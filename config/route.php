@@ -18,6 +18,9 @@ use app\businesses\CreateMemoryCardBusiness;
 use app\businesses\GetMemoryCardBusiness;
 use app\businesses\ListMemoryCardsBusiness;
 use app\businesses\UpdateMemoryCardBusiness;
+use app\businesses\ListTagsBusiness;
+use app\businesses\RenameTagBusiness;
+use app\businesses\DeleteTagBusiness;
 use app\businesses\RetryMemoryCardBusiness;
 use app\businesses\ForgotPasswordBusiness;
 use app\businesses\RegisterBusiness;
@@ -31,6 +34,9 @@ use app\controllers\CreateMemoryCardController;
 use app\controllers\GetMemoryCardController;
 use app\controllers\ListMemoryCardsController;
 use app\controllers\UpdateMemoryCardController;
+use app\controllers\ListTagsController;
+use app\controllers\RenameTagController;
+use app\controllers\DeleteTagController;
 use app\controllers\RetryMemoryCardController;
 use app\controllers\ForgotPasswordController;
 use app\controllers\RegisterController;
@@ -108,6 +114,18 @@ Route::post('/api/memory-cards/{id}/retry', static function (Request $request, s
     return (new RetryMemoryCardController(new RetryMemoryCardBusiness(
         Container::get(AiGenerationQueue::class),
     )))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::get('/api/tags', static function (Request $request) {
+    return (new ListTagsController(new ListTagsBusiness()))($request);
+})->middleware([Authenticate::class]);
+
+Route::patch('/api/tags/{id}', static function (Request $request, string $id) {
+    return (new RenameTagController(new RenameTagBusiness()))($request, $id);
+})->middleware([Authenticate::class]);
+
+Route::delete('/api/tags/{id}', static function (Request $request, string $id) {
+    return (new DeleteTagController(new DeleteTagBusiness()))($request, $id);
 })->middleware([Authenticate::class]);
 
 if (SyncGenerationRoutePolicy::enabled(
