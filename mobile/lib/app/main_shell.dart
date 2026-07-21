@@ -1,0 +1,76 @@
+import 'package:flutter/material.dart';
+
+import '../core/l10n/app_strings.dart';
+import '../core/theme/app_colors.dart';
+import '../features/capture/presentation/capture_page.dart';
+import '../features/home/presentation/home_page.dart';
+import '../features/library/presentation/library_page.dart';
+import '../features/profile/presentation/profile_page.dart';
+import '../features/review/presentation/review_page.dart';
+
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  State<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends State<MainShell> {
+  var _selectedIndex = 0;
+
+  static const _pages = <Widget>[
+    HomePage(),
+    ReviewPage(),
+    CapturePage(),
+    LibraryPage(),
+    ProfilePage(),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: IndexedStack(index: _selectedIndex, children: _pages),
+    bottomNavigationBar: NavigationBar(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (index) {
+        setState(() => _selectedIndex = index);
+      },
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home_rounded),
+          label: AppStrings.home,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.replay_outlined),
+          selectedIcon: Icon(Icons.replay_rounded),
+          label: AppStrings.review,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.center_focus_weak_outlined),
+          selectedIcon: DecoratedBox(
+            key: ValueKey('capture-selected-icon'),
+            decoration: BoxDecoration(
+              color: AppColors.champagneGold,
+              shape: BoxShape.circle,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(6),
+              child: Icon(Icons.center_focus_strong_rounded),
+            ),
+          ),
+          label: AppStrings.capture,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.auto_stories_outlined),
+          selectedIcon: Icon(Icons.auto_stories_rounded),
+          label: AppStrings.library,
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outline_rounded),
+          selectedIcon: Icon(Icons.person_rounded),
+          label: AppStrings.profile,
+        ),
+      ],
+    ),
+  );
+}
