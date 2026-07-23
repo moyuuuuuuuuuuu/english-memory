@@ -1,6 +1,6 @@
 # English Memory 项目总计划与换机交接
 
-> 最后更新：2026-07-21
+> 最后更新：2026-07-23
 > 项目目录：`/mnt/e/dnmp/www/english-memory`（Windows：`E:\dnmp\www\english-memory`）
 > 本文件是项目进度、执行顺序和换机恢复的唯一入口。架构细则以 `AGENTS.md` 为准。
 
@@ -151,7 +151,7 @@ Route -> Controller -> Business -> Service / Model
 
 - [x] 初始化 Android/iOS Flutter 工程和暖白香槟设计系统。
 - [x] 实现 Home、Review、Capture、Library、Profile 五个主导航。
-- [ ] 实现登录、刷新凭证、安全存储与退出。
+- [x] 实现登录、刷新凭证、安全存储与退出。
 - [ ] 实现拍照、裁剪、本地英文 OCR、可编辑确认和单词/句子选择。
 - [ ] 实现本地缓存和可靠的待同步队列。
 
@@ -221,8 +221,10 @@ curl -X POST http://e.test/api/memory-cards \
 
 合并后 Webman 已重启，ai-generation-consumer、ai-generation-compensation、webman、monitor 的 `exit_status` 与 `exit_count` 均为 `0/0`。无 Coze HTTP 冒烟验证旧设备 401、新设备 200；今日队列返回临时卡；正确答案的首次响应与幂等重放字节一致，错误答案强制 `again`；累计 2 次复习、1 次正确、12 XP，卡片同步版本与复习次数均为 2；时区成功更新为 `America/New_York`。临时账户及关联数据清理后剩余 0。
 
-阶段 7 的第一批 Flutter 基础工作位于分支 `codex/flutter-foundation`，隔离工作区为 `/mnt/e/dnmp/www/english-memory/.worktrees/flutter-foundation`。`mobile/` 已由 Flutter 3.44.7 stable 官方生成器创建 Android/iOS 工程；应用使用 Material 3 暖白香槟主题，并以 `NavigationBar + IndexedStack` 提供 Home、Review、Capture、Library、Profile 五个保活主导航。Capture 选中态使用更强的香槟金强调，中文文案集中在 `AppStrings`，未引入路由、状态管理、网络、鉴权、OCR 或持久化依赖。
+阶段 7 的 Flutter 认证工作位于分支 `codex/flutter-authentication`，隔离工作区为 `/mnt/e/dnmp/www/english-memory/.worktrees/flutter-authentication`。客户端现已支持邮箱或用户名注册/登录、`flutter_secure_storage` 版本化会话存储、启动恢复、临近过期刷新、并发刷新单飞、401 单次重放、离线恢复重试和尽力退出；个人页显示当前身份并可退出。注册不会创建会话，成功后返回登录页并回填身份；密码找回入口明确提示留待下一批。
 
-本批次 Flutter 基线为 11 tests 全部通过，`flutter analyze` 为 `No issues found!`；后端基线仍为 187 tests、875 assertions，Composer 配置有效，Nginx 配置检查通过。WSL 的 Flutter SDK 位于 `/home/moyuu/develop/flutter`；当前未配置 Android SDK，Android APK 构建仍留到阶段 9。项目位于 DrvFS/NTFS 时，Impeller 测试 shader 无法修改文件权限，本机将被忽略的 `mobile/build` 链接到 `/home/moyuu/.cache/english-memory/flutter-build` 后测试通过。
+生产组装要求通过 `--dart-define=API_BASE_URL=http://e.test`（真机需改为设备可访问的后端地址）提供绝对 HTTP(S) API 地址；缺失或无效时只显示配置提示，不发起网络请求。认证接口使用独立原始 Dio，受保护请求使用带 Bearer/刷新拦截器的 Dio。新增运行时依赖仅为 `dio 5.10.0` 与 `flutter_secure_storage 10.3.1`，密码不持久化，Access/Refresh Token 仅存在于认证领域、数据和安全存储边界。
 
-下一批从阶段 7 的“登录、刷新凭证、安全存储与退出”开始，随后实现本地 OCR 和可靠待同步队列。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
+2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新执行 `flutter pub get`、`flutter analyze` 和完整 `flutter test`：66 tests 全部通过，分析结果为 `No issues found!`，`git diff --check` 通过。后端最近已验证基线仍为 187 tests、875 assertions；本次最终复验时 Docker 没有任何运行或已停止容器，`php82`/`nginx` 门因此未执行，恢复 DNMP 后必须按第 6 节重新验证，不能将其视为本批次的新鲜通过结果。WSL Flutter SDK 位于 `/home/moyuu/develop/flutter`；当前未配置 Android SDK，Android APK 构建仍留到阶段 9。DrvFS/NTFS 下继续将被忽略的 `mobile/build` 链接到 `/home/moyuu/.cache/english-memory/flutter-auth-build`。
+
+下一批从阶段 7 的本地拍照、裁剪、英文 OCR 与可编辑确认开始，随后实现可靠待同步队列。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
