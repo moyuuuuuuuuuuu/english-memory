@@ -123,6 +123,10 @@ final class InterruptingOutbox implements CardOutboxGateway {
       delegate.nextReady(accountId, now);
 
   @override
+  Future<DateTime?> nextRetryAt(int accountId) =>
+      delegate.nextRetryAt(accountId);
+
+  @override
   Future<int> outstandingCount(int accountId) =>
       delegate.outstandingCount(accountId);
 

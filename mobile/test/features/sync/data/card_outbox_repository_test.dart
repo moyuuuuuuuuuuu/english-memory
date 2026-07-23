@@ -72,6 +72,11 @@ void main() {
       ))?.localId,
       own,
     );
+    expect(
+      await repository.nextRetryAt(7),
+      now.add(const Duration(minutes: 1)),
+    );
+    expect(await repository.nextRetryAt(8), isNull);
   });
 
   test('recoverSending only restores the selected account', () async {

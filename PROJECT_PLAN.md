@@ -237,6 +237,6 @@ curl -X POST http://e.test/api/memory-cards \
 
 本地数据按数字账号 ID 隔离；残留 `sending` 项在下次激活时恢复为 `pending`。后端已接受但本地完成事务前中断时，客户端使用同一请求体和幂等键重放并恢复 Card ID / Job ID 映射。个人页显示实时待同步数量；退出时明确显示未同步条数，取消退出会继续 drain，确认后清除该账号的缓存、游标和队列。清理失败会保留登录状态并显示固定安全文案。
 
-2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新生成 Drift 代码并执行 `flutter analyze` 和完整 `flutter test`：141 tests 全部通过，分析结果为 `No issues found!`，`git diff --check` 通过，生成文件无漂移。Android debug 构建已完成 Flutter Android 工具链准备，但本机没有 Android SDK，最终停止于 `No Android SDK found`；按阶段 9 安装 SDK 后重新构建和设备冒烟。后端代码未变，本批次未重复执行 Docker 后端门。
+2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新生成 Drift 代码并执行 `flutter analyze` 和完整 `flutter test`：142 tests 全部通过，分析结果为 `No issues found!`，`git diff --check` 通过，生成文件无漂移。Android debug 构建已完成 Flutter Android 工具链准备，但本机没有 Android SDK，最终停止于 `No Android SDK found`；按阶段 9 安装 SDK 后重新构建和设备冒烟。后端代码未变，本批次未重复执行 Docker 后端门。
 
 下一批从阶段 8 的生成进度开始：接入卡片详情/增量同步，展示文字先行、图片后补、失败重试与待处理项；随后实现两套卡片布局和三种复习玩法。账户级隐私删除接口与用户级 AI 限流仍保留到阶段 9。

@@ -12,6 +12,8 @@ abstract interface class CardOutboxGateway {
 
   Future<PendingCardCreation?> nextReady(int accountId, DateTime now);
 
+  Future<DateTime?> nextRetryAt(int accountId);
+
   Future<void> markSending(int accountId, String localId);
 
   Future<void> markRetry(
@@ -122,6 +124,20 @@ final class DriftCardOutboxRepository
       memoryStyle: row.memoryStyle,
       attemptCount: row.attemptCount,
     );
+  }
+
+  @override
+  Future<DateTime?> nextRetryAt(int accountId) async {
+    final query = _database.select(_database.pendingCardCreations)
+      ..where(
+        (row) =>
+            row.accountId.equals(accountId) &
+            row.state.equalsValue(PendingCreationState.retryWait) &
+            row.nextAttemptAt.isNotNull(),
+      )
+      ..orderBy([(row) => OrderingTerm.asc(row.nextAttemptAt)])
+      ..limit(1);
+    return (await query.getSingleOrNull())?.nextAttemptAt?.toUtc();
   }
 
   @override

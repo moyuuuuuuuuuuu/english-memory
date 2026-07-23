@@ -78,6 +78,17 @@ void main() {
     expect(timers.delays, [const Duration(seconds: 2)]);
   });
 
+  test('activation restores a timer for an existing future retry', () async {
+    outbox
+      ..add(item('one'), state: FakeState.retryWait)
+      ..nextRetry = now.add(const Duration(minutes: 2));
+
+    await coordinator.activate(7);
+
+    expect(api.localIds, isEmpty);
+    expect(timers.delays, [const Duration(minutes: 2)]);
+  });
+
   test('authentication failure pauses without increasing attempts', () async {
     outbox.add(item('one', attempts: 3));
     api.responses.add(
@@ -196,6 +207,7 @@ final class FakeOutbox implements CardOutboxGateway {
   final retryAttempts = <int>[];
   final blockedIds = <String>[];
   bool failCompleteOnce = false;
+  DateTime? nextRetry;
 
   void add(PendingCardCreation value, {FakeState state = FakeState.pending}) {
     items[value.localId] = value;
@@ -214,6 +226,9 @@ final class FakeOutbox implements CardOutboxGateway {
     }
     return null;
   }
+
+  @override
+  Future<DateTime?> nextRetryAt(int accountId) async => nextRetry;
 
   @override
   Future<void> markSending(int accountId, String localId) async {

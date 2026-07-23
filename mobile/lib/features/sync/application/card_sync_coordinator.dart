@@ -82,7 +82,14 @@ final class CardSyncCoordinator implements SyncLifecycleGateway {
 
     while (_isActive(accountId, activation)) {
       final item = await _outbox.nextReady(accountId, _now().toUtc());
-      if (item == null || !_isActive(accountId, activation)) return;
+      if (item == null) {
+        final nextRetryAt = await _outbox.nextRetryAt(accountId);
+        if (_isActive(accountId, activation) && nextRetryAt != null) {
+          _scheduleRetry(nextRetryAt);
+        }
+        return;
+      }
+      if (!_isActive(accountId, activation)) return;
       await _outbox.markSending(accountId, item.localId);
       if (!_isActive(accountId, activation)) return;
 
