@@ -17,13 +17,37 @@ final class LoginResult {
   final SessionCredentials credentials;
 }
 
-final class AuthApi {
+abstract interface class AuthGateway {
+  Future<RegistrationResult> register({
+    String? email,
+    String? username,
+    required String password,
+  });
+
+  Future<LoginResult> login({
+    required String identity,
+    required String password,
+    required String deviceName,
+  });
+
+  Future<SessionCredentials> refresh(String refreshToken);
+
+  Future<AuthenticatedUser> currentUser(String accessToken);
+
+  Future<void> logout({
+    required String accessToken,
+    required String refreshToken,
+  });
+}
+
+final class AuthApi implements AuthGateway {
   AuthApi(this._dio, {DateTime Function()? now})
     : _now = now ?? DateTime.now;
 
   final Dio _dio;
   final DateTime Function() _now;
 
+  @override
   Future<RegistrationResult> register({
     String? email,
     String? username,
@@ -40,6 +64,7 @@ final class AuthApi {
     return RegistrationResult(_user(data));
   }
 
+  @override
   Future<LoginResult> login({
     required String identity,
     required String password,
@@ -53,6 +78,7 @@ final class AuthApi {
     return LoginResult(user: _user(data), credentials: _credentials(data));
   }
 
+  @override
   Future<SessionCredentials> refresh(String refreshToken) async {
     final data = await _post('/api/auth/refresh', {
       'refresh_token': refreshToken,
@@ -60,6 +86,7 @@ final class AuthApi {
     return _credentials(data);
   }
 
+  @override
   Future<AuthenticatedUser> currentUser(String accessToken) async {
     final data = await _get(
       '/api/auth/me',
@@ -68,6 +95,7 @@ final class AuthApi {
     return _user(data);
   }
 
+  @override
   Future<void> logout({
     required String accessToken,
     required String refreshToken,
