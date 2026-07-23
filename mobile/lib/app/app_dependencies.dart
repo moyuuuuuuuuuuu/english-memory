@@ -7,14 +7,19 @@ import '../features/auth/data/auth_api.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/auth/data/secure_session_store.dart';
 import '../features/auth/presentation/session_controller.dart';
+import '../features/capture/data/mlkit_text_recognition_service.dart';
+import '../features/capture/data/plugin_image_crop_service.dart';
+import '../features/capture/data/plugin_image_source_service.dart';
+import '../features/capture/presentation/capture_controller.dart';
 
 final class AppDependencies {
-  AppDependencies({required this.controller})
+  AppDependencies({required this.controller, required this.captureController})
     : authenticatedDio = null,
       configurationMessage = null;
 
   AppDependencies._({
     required this.controller,
+    required this.captureController,
     required this.authenticatedDio,
     required this.configurationMessage,
   });
@@ -32,14 +37,21 @@ final class AppDependencies {
       );
       final protectedDio = Dio(BaseOptions(baseUrl: config.baseUrl.toString()));
       AuthenticatedApiClient(protectedDio, repository);
+      final captureController = CaptureController(
+        PluginImageSourceService(),
+        PluginImageCropService(),
+        MlKitTextRecognitionService(),
+      );
       return AppDependencies._(
         controller: SessionController(repository),
+        captureController: captureController,
         authenticatedDio: protectedDio,
         configurationMessage: null,
       );
     } on FormatException {
       return AppDependencies._(
         controller: null,
+        captureController: null,
         authenticatedDio: null,
         configurationMessage: '缺少有效的 API_BASE_URL，请配置后重新启动。',
       );
@@ -47,11 +59,13 @@ final class AppDependencies {
   }
 
   final SessionController? controller;
+  final CaptureController? captureController;
   final Dio? authenticatedDio;
   final String? configurationMessage;
 
   void dispose() {
     controller?.dispose();
+    captureController?.dispose();
     authenticatedDio?.close(force: true);
   }
 }

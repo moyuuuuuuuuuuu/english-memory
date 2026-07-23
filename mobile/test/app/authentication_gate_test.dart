@@ -10,15 +10,24 @@ import 'package:english_memory/features/auth/presentation/startup_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/test_capture_controller.dart';
+
 void main() {
   testWidgets('restores once and shows login without stored credentials', (
     tester,
   ) async {
     final repository = GateRepository();
     final controller = SessionController(repository);
+    final captureController = createTestCaptureController();
+    addTearDown(captureController.dispose);
 
     await tester.pumpWidget(
-      MaterialApp(home: AuthenticationGate(controller: controller)),
+      MaterialApp(
+        home: AuthenticationGate(
+          controller: controller,
+          captureController: captureController,
+        ),
+      ),
     );
     expect(find.byType(StartupPage), findsOneWidget);
     await tester.pumpAndSettle();
@@ -30,9 +39,16 @@ void main() {
   testWidgets('shows the shell and authenticated identity', (tester) async {
     final repository = GateRepository()..session = testSession;
     final controller = SessionController(repository);
+    final captureController = createTestCaptureController();
+    addTearDown(captureController.dispose);
 
     await tester.pumpWidget(
-      MaterialApp(home: AuthenticationGate(controller: controller)),
+      MaterialApp(
+        home: AuthenticationGate(
+          controller: controller,
+          captureController: captureController,
+        ),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('我的'));

@@ -14,4 +14,7 @@ abstract final class AppStrings {
   static const createAccount = '创建账号';
   static const identity = '邮箱或用户名';
   static const password = '密码';
+  static const captureCamera = '拍照识别';
+  static const captureGallery = '选择照片';
+  static const captureContinue = '继续生成';
 }

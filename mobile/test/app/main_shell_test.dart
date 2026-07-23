@@ -7,19 +7,28 @@ import 'package:english_memory/features/library/presentation/library_page.dart';
 import 'package:english_memory/features/profile/presentation/profile_page.dart';
 import 'package:english_memory/features/review/presentation/review_page.dart';
 import 'package:english_memory/features/auth/domain/authenticated_user.dart';
+import 'package:english_memory/features/capture/presentation/capture_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/test_capture_controller.dart';
+
 void main() {
-  Widget app() => const MaterialApp(
+  late CaptureController captureController;
+
+  setUp(() => captureController = createTestCaptureController());
+  tearDown(() => captureController.dispose());
+
+  Widget app() => MaterialApp(
     home: MainShell(
-      user: AuthenticatedUser(
+      user: const AuthenticatedUser(
         id: 1,
         email: 'learner@example.com',
         username: null,
         timezone: 'Asia/Shanghai',
       ),
       onLogout: _noopLogout,
+      captureController: captureController,
     ),
   );
 
@@ -103,6 +112,7 @@ void main() {
             timezone: 'Asia/Shanghai',
           ),
           onLogout: () async => logoutCalls++,
+          captureController: captureController,
         ),
       ),
     );
@@ -114,6 +124,22 @@ void main() {
     await tester.tap(find.text('退出登录'));
     await tester.pump();
     expect(logoutCalls, 1);
+  });
+
+  testWidgets('keeps the Capture draft mounted across tab switches', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await tester.tap(find.text(AppStrings.capture));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('capture_text')), 'kept draft');
+
+    await tester.tap(find.text(AppStrings.home));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.capture));
+    await tester.pumpAndSettle();
+
+    expect(find.text('kept draft'), findsOneWidget);
   });
 }
 

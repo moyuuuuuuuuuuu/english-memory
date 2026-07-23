@@ -6,6 +6,7 @@ void main() {
     final dependencies = AppDependencies.production();
 
     expect(dependencies.controller, isNull);
+    expect(dependencies.captureController, isNull);
     expect(dependencies.configurationMessage, contains('API_BASE_URL'));
   });
 }

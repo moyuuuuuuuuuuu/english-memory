@@ -11,12 +11,17 @@ import 'package:english_memory/features/auth/domain/authenticated_user.dart';
 import 'package:english_memory/features/auth/domain/session_credentials.dart';
 import 'package:english_memory/features/auth/presentation/session_controller.dart';
 
+import 'support/test_capture_controller.dart';
+
 void main() {
   testWidgets('app starts on Home with the shared theme', (tester) async {
+    final captureController = createTestCaptureController();
+    addTearDown(captureController.dispose);
     await tester.pumpWidget(
       EnglishMemoryApp(
         dependencies: AppDependencies(
           controller: SessionController(_AuthenticatedRepository()),
+          captureController: captureController,
         ),
       ),
     );

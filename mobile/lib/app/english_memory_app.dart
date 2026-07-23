@@ -36,11 +36,12 @@ final class _EnglishMemoryAppState extends State<EnglishMemoryApp> {
   @override
   Widget build(BuildContext context) {
     final controller = _dependencies.controller;
+    final captureController = _dependencies.captureController;
     return MaterialApp(
       title: AppStrings.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      home: controller == null
+      home: controller == null || captureController == null
           ? Scaffold(
               body: Center(
                 child: Padding(
@@ -52,7 +53,10 @@ final class _EnglishMemoryAppState extends State<EnglishMemoryApp> {
                 ),
               ),
             )
-          : AuthenticationGate(controller: controller),
+          : AuthenticationGate(
+              controller: controller,
+              captureController: captureController,
+            ),
     );
   }
 }
