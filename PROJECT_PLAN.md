@@ -152,7 +152,7 @@ Route -> Controller -> Business -> Service / Model
 - [x] 初始化 Android/iOS Flutter 工程和暖白香槟设计系统。
 - [x] 实现 Home、Review、Capture、Library、Profile 五个主导航。
 - [x] 实现登录、刷新凭证、安全存储与退出。
-- [ ] 实现拍照、裁剪、本地英文 OCR、可编辑确认和单词/句子选择。
+- [x] 实现拍照、裁剪、本地英文 OCR、可编辑确认和单词/句子选择。
 - [ ] 实现本地缓存和可靠的待同步队列。
 
 ### 阶段 8：移动端卡片、复习与离线能力
@@ -227,4 +227,10 @@ curl -X POST http://e.test/api/memory-cards \
 
 2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新执行 `flutter pub get`、`flutter analyze` 和完整 `flutter test`：66 tests 全部通过，分析结果为 `No issues found!`，`git diff --check` 通过。后端最近已验证基线仍为 187 tests、875 assertions；本次最终复验时 Docker 没有任何运行或已停止容器，`php82`/`nginx` 门因此未执行，恢复 DNMP 后必须按第 6 节重新验证，不能将其视为本批次的新鲜通过结果。WSL Flutter SDK 位于 `/home/moyuu/develop/flutter`；当前未配置 Android SDK，Android APK 构建仍留到阶段 9。DrvFS/NTFS 下继续将被忽略的 `mobile/build` 链接到 `/home/moyuu/.cache/english-memory/flutter-auth-build`。
 
-下一批从阶段 7 的本地拍照、裁剪、英文 OCR 与可编辑确认开始，随后实现可靠待同步队列。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
+阶段 7 的本地 OCR 工作位于分支 `codex/flutter-local-ocr`，隔离工作区为 `/mnt/e/dnmp/www/english-memory/.worktrees/flutter-local-ocr`。Capture 现支持手动输入、拍照和相册选择；图片经原生自由裁剪后使用 ML Kit 拉丁模型在设备本地识别，识别结果可继续编辑，并可选择单词/句子及自动、谐音故事、语义场景三种记忆风格。选择或裁剪取消、权限拒绝、裁剪失败、OCR 失败和未识别到英文都不会清空已有草稿；重复图片操作会被阻止，草稿在五栏导航切换后继续保留。
+
+本批次新增 `image_picker 1.2.3`、`image_cropper 12.2.1` 和 `google_mlkit_text_recognition 0.16.0`，平台下限调整为 Android API 24 与 iOS 15.5，并加入相机/相册中文权限说明和 uCrop Activity。插件只存在于 Capture data 层，domain/presentation 不导入插件；Capture 范围内无 Dio/HTTP 调用且未启用非拉丁 OCR 模型。“继续生成”当前只产出已验证的本地草稿并提示下一阶段接线，不上传图片或文本。
+
+2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新执行 `flutter pub get`、`flutter analyze` 和完整 `flutter test`：104 tests 全部通过，分析结果为 `No issues found!`，`git diff --check`、网络边界、插件依赖方向和平台配置审计均通过。当前机器仍未配置 Android SDK，且 Linux 环境无法执行 iOS 签名，因此相机、相册、原生裁剪和真实 ML Kit 识别仍需在 Android/iOS 设备上冒烟验证。后端代码未变，本批次未重复执行 Docker 后端门。
+
+下一批从阶段 7 的本地缓存和可靠待同步队列开始，并把已验证的 `CaptureDraft` 接入待同步操作；远端生成进度、文字先行、图片后补和失败重试继续属于阶段 8。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
