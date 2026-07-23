@@ -56,6 +56,8 @@ final class _EnglishMemoryAppState extends State<EnglishMemoryApp> {
           : AuthenticationGate(
               controller: controller,
               captureController: captureController,
+              outbox: _dependencies.outbox,
+              syncLifecycle: _dependencies.syncLifecycle,
             ),
     );
   }
