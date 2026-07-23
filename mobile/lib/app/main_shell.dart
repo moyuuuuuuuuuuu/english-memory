@@ -7,9 +7,13 @@ import '../features/home/presentation/home_page.dart';
 import '../features/library/presentation/library_page.dart';
 import '../features/profile/presentation/profile_page.dart';
 import '../features/review/presentation/review_page.dart';
+import '../features/auth/domain/authenticated_user.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({required this.user, required this.onLogout, super.key});
+
+  final AuthenticatedUser user;
+  final Future<void> Function() onLogout;
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -18,13 +22,19 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   var _selectedIndex = 0;
 
-  static const _pages = <Widget>[
-    HomePage(),
-    ReviewPage(),
-    CapturePage(),
-    LibraryPage(),
-    ProfilePage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomePage(),
+      const ReviewPage(),
+      const CapturePage(),
+      const LibraryPage(),
+      ProfilePage(user: widget.user, onLogout: widget.onLogout),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(

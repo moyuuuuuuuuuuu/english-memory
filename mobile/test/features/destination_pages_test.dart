@@ -3,6 +3,7 @@ import 'package:english_memory/features/home/presentation/home_page.dart';
 import 'package:english_memory/features/library/presentation/library_page.dart';
 import 'package:english_memory/features/profile/presentation/profile_page.dart';
 import 'package:english_memory/features/review/presentation/review_page.dart';
+import 'package:english_memory/features/auth/domain/authenticated_user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -12,7 +13,18 @@ void main() {
     (ReviewPage(), '复习'),
     (CapturePage(), '捕捉英语'),
     (LibraryPage(), '卡片库'),
-    (ProfilePage(), '我的'),
+    (
+      ProfilePage(
+        user: AuthenticatedUser(
+          id: 1,
+          email: 'learner@example.com',
+          username: null,
+          timezone: 'Asia/Shanghai',
+        ),
+        onLogout: _noopLogout,
+      ),
+      '我的',
+    ),
   ];
 
   for (final (page, title) in cases) {
@@ -23,3 +35,5 @@ void main() {
     });
   }
 }
+
+Future<void> _noopLogout() async {}
