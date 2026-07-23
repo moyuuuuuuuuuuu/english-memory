@@ -20,9 +20,10 @@ final class SessionAuthenticating extends SessionState {
 }
 
 final class SessionAuthenticated extends SessionState {
-  const SessionAuthenticated(this.session);
+  const SessionAuthenticated(this.session, {this.message});
 
   final AuthSession session;
+  final String? message;
 }
 
 final class SessionOfflineError extends SessionState {

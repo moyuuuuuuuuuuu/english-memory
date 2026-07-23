@@ -9,6 +9,7 @@ import 'package:english_memory/features/auth/domain/session_credentials.dart';
 import 'package:english_memory/features/auth/presentation/session_controller.dart';
 import 'package:english_memory/features/auth/presentation/session_state.dart';
 import 'package:english_memory/features/auth/presentation/startup_page.dart';
+import 'package:english_memory/features/sync/application/sync_lifecycle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -29,11 +30,19 @@ void main() {
   late AuthSession session;
   late FakeAuthRepository repository;
   late SessionController controller;
+  late FakeLocalData localData;
+  late FakeSyncLifecycle syncLifecycle;
 
   setUp(() {
     session = AuthSession(user: user, credentials: credentials);
     repository = FakeAuthRepository();
-    controller = SessionController(repository);
+    localData = FakeLocalData();
+    syncLifecycle = FakeSyncLifecycle();
+    controller = SessionController(
+      repository,
+      localData: localData,
+      syncLifecycle: syncLifecycle,
+    );
   });
 
   test('restore without credentials becomes signed out', () async {
@@ -48,6 +57,7 @@ void main() {
     await controller.restore();
 
     expect((controller.state as SessionAuthenticated).session, session);
+    expect(syncLifecycle.activatedAccounts, [7]);
   });
 
   test('network restore failure preserves a retryable offline state', () async {
@@ -90,41 +100,49 @@ void main() {
 
     expect(controller.state, isA<SessionAuthenticated>());
     expect(repository.restoreCalls, 2);
+    expect(syncLifecycle.activatedAccounts, [7]);
   });
 
-  test('login transitions to authenticated and ignores duplicate submit', () async {
-    final barrier = Completer<AuthSession>();
-    repository.loginBarrier = barrier;
+  test(
+    'login transitions to authenticated and ignores duplicate submit',
+    () async {
+      final barrier = Completer<AuthSession>();
+      repository.loginBarrier = barrier;
 
-    final first = controller.login(
-      identity: 'learner@example.com',
-      password: 'SecurePass123!',
-    );
-    final second = controller.login(
-      identity: 'learner@example.com',
-      password: 'SecurePass123!',
-    );
-    expect(controller.state, isA<SessionAuthenticating>());
-    expect(repository.loginCalls, 1);
+      final first = controller.login(
+        identity: 'learner@example.com',
+        password: 'SecurePass123!',
+      );
+      final second = controller.login(
+        identity: 'learner@example.com',
+        password: 'SecurePass123!',
+      );
+      expect(controller.state, isA<SessionAuthenticating>());
+      expect(repository.loginCalls, 1);
 
-    barrier.complete(session);
-    await Future.wait([first, second]);
+      barrier.complete(session);
+      await Future.wait([first, second]);
 
-    expect(controller.state, isA<SessionAuthenticated>());
-  });
+      expect(controller.state, isA<SessionAuthenticated>());
+      expect(syncLifecycle.activatedAccounts, [7]);
+    },
+  );
 
-  test('registration returns identity and success message to sign in', () async {
-    repository.registration = const RegistrationResult(user);
+  test(
+    'registration returns identity and success message to sign in',
+    () async {
+      repository.registration = const RegistrationResult(user);
 
-    await controller.register(
-      email: 'learner@example.com',
-      password: 'SecurePass123!',
-    );
+      await controller.register(
+        email: 'learner@example.com',
+        password: 'SecurePass123!',
+      );
 
-    final state = controller.state as SessionSignedOut;
-    expect(state.prefilledIdentity, 'learner@example.com');
-    expect(state.message, contains('注册成功'));
-  });
+      final state = controller.state as SessionSignedOut;
+      expect(state.prefilledIdentity, 'learner@example.com');
+      expect(state.message, contains('注册成功'));
+    },
+  );
 
   test('logout always becomes signed out when remote logout fails', () async {
     repository
@@ -140,9 +158,41 @@ void main() {
 
     expect(controller.state, isA<SessionSignedOut>());
     expect(repository.logoutCalls, 1);
+    expect(syncLifecycle.deactivateCalls, 1);
   });
 
-  testWidgets('offline startup actions invoke retry and sign out', (tester) async {
+  test(
+    'confirmed logout clears only the active account before signing out',
+    () async {
+      repository.restoredSession = session;
+      await controller.restore();
+
+      await controller.confirmedLogout(7);
+
+      expect(localData.clearedAccounts, [7]);
+      expect(repository.logoutCalls, 1);
+      expect(syncLifecycle.deactivateCalls, 1);
+      expect(controller.state, isA<SessionSignedOut>());
+    },
+  );
+
+  test('local cleanup failure preserves the authenticated session', () async {
+    repository.restoredSession = session;
+    await controller.restore();
+    localData.error = StateError('disk detail');
+
+    await controller.confirmedLogout(7);
+
+    final state = controller.state as SessionAuthenticated;
+    expect(state.session, session);
+    expect(state.message, '无法清除本机数据，请重试。');
+    expect(repository.logoutCalls, 0);
+    expect(syncLifecycle.deactivateCalls, 0);
+  });
+
+  testWidgets('offline startup actions invoke retry and sign out', (
+    tester,
+  ) async {
     var retried = false;
     var signedOut = false;
 
@@ -190,9 +240,7 @@ final class FakeAuthRepository implements AuthRepositoryGateway {
     required String deviceName,
   }) async {
     loginCalls++;
-    return loginBarrier == null
-        ? restoredSession!
-        : await loginBarrier!.future;
+    return loginBarrier == null ? restoredSession! : await loginBarrier!.future;
   }
 
   @override
@@ -207,4 +255,36 @@ final class FakeAuthRepository implements AuthRepositoryGateway {
     logoutCalls++;
     if (logoutError case final error?) throw error;
   }
+}
+
+final class FakeLocalData implements AccountLocalDataGateway {
+  final clearedAccounts = <int>[];
+  Object? error;
+
+  @override
+  Future<void> clearAccount(int accountId) async {
+    if (error case final value?) throw value;
+    clearedAccounts.add(accountId);
+  }
+}
+
+final class FakeSyncLifecycle implements SyncLifecycleGateway {
+  final activatedAccounts = <int>[];
+  int deactivateCalls = 0;
+  int drainCalls = 0;
+  int resumedCalls = 0;
+
+  @override
+  Future<void> activate(int accountId) async {
+    activatedAccounts.add(accountId);
+  }
+
+  @override
+  void deactivate() => deactivateCalls++;
+
+  @override
+  Future<void> drain() async => drainCalls++;
+
+  @override
+  Future<void> onResumed() async => resumedCalls++;
 }

@@ -153,7 +153,7 @@ Route -> Controller -> Business -> Service / Model
 - [x] 实现 Home、Review、Capture、Library、Profile 五个主导航。
 - [x] 实现登录、刷新凭证、安全存储与退出。
 - [x] 实现拍照、裁剪、本地英文 OCR、可编辑确认和单词/句子选择。
-- [ ] 实现本地缓存和可靠的待同步队列。
+- [x] 实现本地缓存和可靠的待同步队列。
 
 ### 阶段 8：移动端卡片、复习与离线能力
 
@@ -233,4 +233,10 @@ curl -X POST http://e.test/api/memory-cards \
 
 2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新执行 `flutter pub get`、`flutter analyze` 和完整 `flutter test`：104 tests 全部通过，分析结果为 `No issues found!`，`git diff --check`、网络边界、插件依赖方向和平台配置审计均通过。当前机器仍未配置 Android SDK，且 Linux 环境无法执行 iOS 签名，因此相机、相册、原生裁剪和真实 ML Kit 识别仍需在 Android/iOS 设备上冒烟验证。后端代码未变，本批次未重复执行 Docker 后端门。
 
-下一批从阶段 7 的本地缓存和可靠待同步队列开始，并把已验证的 `CaptureDraft` 接入待同步操作；远端生成进度、文字先行、图片后补和失败重试继续属于阶段 8。账户级隐私删除接线与用户级 AI 限流仍保留到阶段 9。
+阶段 7 的本地缓存与可靠创建队列位于分支 `codex/flutter-reliable-sync-queue`。客户端采用 Drift + SQLite，将 Capture 草稿与卡片占位记录在同一个本地事务中落盘，再使用不可变 UUID 作为后端 `Idempotency-Key` 串行发送。应用启动、登录恢复、新草稿、前台恢复和手动重试均可触发 drain；网络、超时、5xx 与 429 使用最高 5 分钟的指数退避并尊重更晚的 `Retry-After`，401 暂停且不增加尝试次数，其余永久 4xx 标记为待处理。
+
+本地数据按数字账号 ID 隔离；残留 `sending` 项在下次激活时恢复为 `pending`。后端已接受但本地完成事务前中断时，客户端使用同一请求体和幂等键重放并恢复 Card ID / Job ID 映射。个人页显示实时待同步数量；退出时明确显示未同步条数，取消退出会继续 drain，确认后清除该账号的缓存、游标和队列。清理失败会保留登录状态并显示固定安全文案。
+
+2026-07-23 使用 Flutter 3.44.7 stable、Dart 3.12.2 重新生成 Drift 代码并执行 `flutter analyze` 和完整 `flutter test`：142 tests 全部通过，分析结果为 `No issues found!`，`git diff --check` 通过，生成文件无漂移。Android debug 构建已完成 Flutter Android 工具链准备，但本机没有 Android SDK，最终停止于 `No Android SDK found`；按阶段 9 安装 SDK 后重新构建和设备冒烟。后端代码未变，本批次未重复执行 Docker 后端门。
+
+下一批从阶段 8 的生成进度开始：接入卡片详情/增量同步，展示文字先行、图片后补、失败重试与待处理项；随后实现两套卡片布局和三种复习玩法。账户级隐私删除接口与用户级 AI 限流仍保留到阶段 9。

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/l10n/app_strings.dart';
@@ -15,18 +17,26 @@ class MainShell extends StatefulWidget {
     required this.user,
     required this.onLogout,
     required this.captureController,
+    this.pendingCounts = const Stream<int>.empty(),
+    this.onLogoutCancelled,
+    this.onResumed,
+    this.message,
     super.key,
   });
 
   final AuthenticatedUser user;
   final Future<void> Function() onLogout;
   final CaptureController captureController;
+  final Stream<int> pendingCounts;
+  final Future<void> Function()? onLogoutCancelled;
+  final Future<void> Function()? onResumed;
+  final String? message;
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   var _selectedIndex = 0;
 
   late final List<Widget> _pages;
@@ -34,13 +44,34 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pages = [
       const HomePage(),
       const ReviewPage(),
       CapturePage(controller: widget.captureController),
       const LibraryPage(),
-      ProfilePage(user: widget.user, onLogout: widget.onLogout),
+      ProfilePage(
+        user: widget.user,
+        onLogout: widget.onLogout,
+        pendingCounts: widget.pendingCounts,
+        onLogoutCancelled: widget.onLogoutCancelled,
+        message: widget.message,
+      ),
     ];
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final callback = widget.onResumed;
+      if (callback != null) unawaited(callback());
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override

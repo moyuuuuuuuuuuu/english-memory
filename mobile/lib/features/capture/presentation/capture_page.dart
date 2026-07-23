@@ -6,18 +6,16 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../data/image_source_service.dart';
 import '../domain/capture_content_type.dart';
-import '../domain/capture_draft.dart';
 import '../domain/capture_memory_style.dart';
 import 'capture_controller.dart';
 import 'capture_state.dart';
 
 final class CapturePage extends StatefulWidget {
-  const CapturePage({required this.controller, this.onDraftReady, super.key});
+  const CapturePage({required this.controller, super.key});
 
   static const pageKey = ValueKey('capture-page');
 
   final CaptureController controller;
-  final ValueChanged<CaptureDraft>? onDraftReady;
 
   @override
   State<CapturePage> createState() => _CapturePageState();
@@ -44,11 +42,13 @@ final class _CapturePageState extends State<CapturePage> {
         final busy =
             state is CaptureSelectingImage ||
             state is CaptureCroppingImage ||
-            state is CaptureRecognizingText;
+            state is CaptureRecognizingText ||
+            state is CaptureSaving;
         final progress = switch (state) {
           CaptureSelectingImage() => '正在打开图片…',
           CaptureCroppingImage() => '正在准备裁剪…',
           CaptureRecognizingText() => '正在本地识别英文…',
+          CaptureSaving() => '正在保存到本机…',
           _ => null,
         };
         final failure = state is CaptureFailure ? state.message : null;
@@ -248,6 +248,7 @@ final class _CapturePageState extends State<CapturePage> {
     CaptureSelectingImage(:final previous) => previous,
     CaptureCroppingImage(:final previous) => previous,
     CaptureRecognizingText(:final previous) => previous,
+    CaptureSaving(:final previous) => previous,
     CaptureFailure(:final previous) => previous,
   };
 
@@ -259,15 +260,18 @@ final class _CapturePageState extends State<CapturePage> {
     );
   }
 
-  void _continue() {
+  Future<void> _continue() async {
     try {
-      final draft = widget.controller.createDraft();
-      widget.onDraftReady?.call(draft);
+      await widget.controller.submit();
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('生成与同步将在下一阶段接入')));
+      ).showSnackBar(const SnackBar(content: Text('已保存，正在同步')));
     } on FormatException {
+      if (!mounted) return;
       setState(() => _validationMessage = '请输入要记忆的英文内容');
+    } catch (_) {
+      // The controller exposes a stable local persistence message.
     }
   }
 }
