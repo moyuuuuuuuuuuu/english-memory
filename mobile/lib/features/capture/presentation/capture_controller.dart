@@ -11,11 +11,18 @@ import '../domain/recognized_text_normalizer.dart';
 import 'capture_state.dart';
 
 final class CaptureController extends ChangeNotifier {
-  CaptureController(this._source, this._cropper, this._recognizer);
+  CaptureController(
+    this._source,
+    this._cropper,
+    this._recognizer, {
+    Future<String> Function(CaptureDraft draft)? saveDraft,
+  }) : _saveDraft = saveDraft ?? _unconfiguredSave;
 
   final ImageSourceService _source;
   final ImageCropService _cropper;
   final TextRecognitionService _recognizer;
+  final Future<String> Function(CaptureDraft draft) _saveDraft;
+  Future<String>? _submitInFlight;
 
   CaptureState _state = const CaptureReady(
     text: '',
@@ -28,7 +35,8 @@ final class CaptureController extends ChangeNotifier {
   Future<void> acquire(CaptureImageSource source) async {
     if (_state is CaptureSelectingImage ||
         _state is CaptureCroppingImage ||
-        _state is CaptureRecognizingText) {
+        _state is CaptureRecognizingText ||
+        _state is CaptureSaving) {
       return;
     }
 
@@ -94,11 +102,50 @@ final class CaptureController extends ChangeNotifier {
     );
   }
 
+  Future<String> submit() {
+    final current = _submitInFlight;
+    if (current != null) return current;
+
+    late final Future<String> running;
+    running = _performSubmit().whenComplete(() {
+      if (identical(_submitInFlight, running)) {
+        _submitInFlight = null;
+      }
+    });
+    _submitInFlight = running;
+    return running;
+  }
+
+  Future<String> _performSubmit() async {
+    final previous = _ready;
+    final draft = CaptureDraft(
+      text: previous.text,
+      contentType: previous.contentType,
+      memoryStyle: previous.memoryStyle,
+    );
+    _setState(CaptureSaving(previous));
+    try {
+      final localId = await _saveDraft(draft);
+      _setState(
+        const CaptureReady(
+          text: '',
+          contentType: CaptureContentType.word,
+          memoryStyle: CaptureMemoryStyle.auto,
+        ),
+      );
+      return localId;
+    } catch (_) {
+      _setState(CaptureFailure(previous, '无法保存到本机，请重试。'));
+      rethrow;
+    }
+  }
+
   CaptureReady get _ready => switch (_state) {
     CaptureReady state => state,
     CaptureSelectingImage(:final previous) => previous,
     CaptureCroppingImage(:final previous) => previous,
     CaptureRecognizingText(:final previous) => previous,
+    CaptureSaving(:final previous) => previous,
     CaptureFailure(:final previous) => previous,
   };
 
@@ -114,6 +161,9 @@ final class CaptureController extends ChangeNotifier {
     CaptureServiceFailure.cropFailed => '图片裁剪失败，请重试。',
     CaptureServiceFailure.recognitionFailed => '本地英文识别失败，请重试或手动输入。',
   };
+
+  static Future<String> _unconfiguredSave(CaptureDraft _) =>
+      Future.error(StateError('Capture persistence is not configured.'));
 
   @override
   void dispose() {

@@ -17,22 +17,32 @@ void main() {
   late PageRecognizer recognizer;
   late CaptureController controller;
   late List<CaptureDraft> drafts;
+  Completer<String>? saveBarrier;
+  Object? saveError;
 
   setUp(() {
     source = PageImageSource();
     cropper = PageCropper();
     recognizer = PageRecognizer();
-    controller = CaptureController(source, cropper, recognizer);
     drafts = [];
+    controller = CaptureController(
+      source,
+      cropper,
+      recognizer,
+      saveDraft: (draft) async {
+        drafts.add(draft);
+        if (saveError case final error?) throw error;
+        if (saveBarrier case final barrier?) return barrier.future;
+        return 'local-id';
+      },
+    );
   });
 
   tearDown(() => controller.dispose());
 
   Future<void> pumpPage(WidgetTester tester) => tester.pumpWidget(
     MaterialApp(
-      home: Scaffold(
-        body: CapturePage(controller: controller, onDraftReady: drafts.add),
-      ),
+      home: Scaffold(body: CapturePage(controller: controller)),
     ),
   );
 
@@ -109,7 +119,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('selectors and Continue emit only a local draft', (tester) async {
+  testWidgets('Continue durably saves then clears with feedback', (
+    tester,
+  ) async {
     await pumpPage(tester);
     await tester.enterText(
       find.byKey(const Key('capture_text')),
@@ -129,7 +141,48 @@ void main() {
     expect(drafts.single.text, 'A vivid memory.');
     expect(drafts.single.contentType.apiValue, 'sentence');
     expect(drafts.single.memoryStyle.apiValue, 'semantic_scene');
-    expect(find.text('生成与同步将在下一阶段接入'), findsOneWidget);
+    expect(find.text('已保存，正在同步'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const Key('capture_text')))
+          .controller!
+          .text,
+      isEmpty,
+    );
+  });
+
+  testWidgets('saving disables duplicate submission', (tester) async {
+    saveBarrier = Completer<String>();
+    await pumpPage(tester);
+    await tester.enterText(find.byKey(const Key('capture_text')), 'ambition');
+    await tester.ensureVisible(find.byKey(const Key('capture_continue')));
+
+    await tester.tap(find.byKey(const Key('capture_continue')));
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const Key('capture_continue')))
+          .onPressed,
+      isNull,
+    );
+    expect(drafts, hasLength(1));
+    saveBarrier!.complete('local-id');
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('local save failure keeps the entered content', (tester) async {
+    saveError = StateError('disk detail');
+    await pumpPage(tester);
+    await tester.enterText(find.byKey(const Key('capture_text')), 'ambition');
+    await tester.ensureVisible(find.byKey(const Key('capture_continue')));
+
+    await tester.tap(find.byKey(const Key('capture_continue')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('无法保存到本机，请重试。'), findsOneWidget);
+    expect(find.text('ambition'), findsOneWidget);
+    expect(find.textContaining('disk detail'), findsNothing);
   });
 
   testWidgets('empty Continue shows focused validation', (tester) async {

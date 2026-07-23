@@ -6,6 +6,7 @@ import 'package:english_memory/features/capture/data/image_crop_service.dart';
 import 'package:english_memory/features/capture/data/image_source_service.dart';
 import 'package:english_memory/features/capture/data/text_recognition_service.dart';
 import 'package:english_memory/features/capture/domain/capture_content_type.dart';
+import 'package:english_memory/features/capture/domain/capture_draft.dart';
 import 'package:english_memory/features/capture/domain/capture_memory_style.dart';
 import 'package:english_memory/features/capture/presentation/capture_controller.dart';
 import 'package:english_memory/features/capture/presentation/capture_state.dart';
@@ -16,12 +17,23 @@ void main() {
   late FakeImageCropService cropper;
   late FakeTextRecognitionService recognizer;
   late CaptureController controller;
+  late List<CaptureDraft> savedDrafts;
+  Future<String> Function(CaptureDraft draft)? saveOverride;
 
   setUp(() {
     source = FakeImageSourceService();
     cropper = FakeImageCropService();
     recognizer = FakeTextRecognitionService();
-    controller = CaptureController(source, cropper, recognizer);
+    savedDrafts = [];
+    controller = CaptureController(
+      source,
+      cropper,
+      recognizer,
+      saveDraft: (draft) {
+        savedDrafts.add(draft);
+        return saveOverride?.call(draft) ?? Future.value('local-id');
+      },
+    );
   });
 
   tearDown(() => controller.dispose());
@@ -184,10 +196,58 @@ void main() {
     expect(draft.memoryStyle, CaptureMemoryStyle.semanticScene);
   });
 
+  test('submit saves once and resets only after durable completion', () async {
+    final barrier = Completer<String>();
+    saveOverride = (_) => barrier.future;
+    controller
+      ..editText(' vivid memory ')
+      ..selectContentType(CaptureContentType.sentence)
+      ..selectMemoryStyle(CaptureMemoryStyle.semanticScene);
+
+    final first = controller.submit();
+    final second = controller.submit();
+
+    expect(controller.state, isA<CaptureSaving>());
+    expect(savedDrafts, hasLength(1));
+    barrier.complete('local-id');
+    expect(await first, 'local-id');
+    expect(await second, 'local-id');
+    final ready = controller.state as CaptureReady;
+    expect(ready.text, isEmpty);
+    expect(ready.contentType, CaptureContentType.word);
+    expect(ready.memoryStyle, CaptureMemoryStyle.auto);
+    expect(ready.image, isNull);
+  });
+
+  test('submit failure preserves content with a safe local message', () async {
+    saveOverride = (_) => Future.error(StateError('disk detail'));
+    controller
+      ..editText('keep me')
+      ..selectMemoryStyle(CaptureMemoryStyle.phoneticStory);
+
+    await expectLater(controller.submit(), throwsStateError);
+
+    final failure = controller.state as CaptureFailure;
+    expect(failure.previous.text, 'keep me');
+    expect(failure.previous.memoryStyle, CaptureMemoryStyle.phoneticStory);
+    expect(failure.message, '无法保存到本机，请重试。');
+    expect(failure.message, isNot(contains('disk detail')));
+  });
+
+  test('blank submit fails before calling the saver', () async {
+    await expectLater(controller.submit(), throwsFormatException);
+    expect(savedDrafts, isEmpty);
+  });
+
   test('disposing the controller releases OCR resources', () {
     controller.dispose();
     expect(recognizer.disposed, isTrue);
-    controller = CaptureController(source, cropper, recognizer);
+    controller = CaptureController(
+      source,
+      cropper,
+      recognizer,
+      saveDraft: (_) async => 'local-id',
+    );
   });
 }
 

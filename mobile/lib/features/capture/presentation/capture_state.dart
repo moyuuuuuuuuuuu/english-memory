@@ -57,6 +57,12 @@ final class CaptureRecognizingText extends CaptureState {
   final CaptureImage image;
 }
 
+final class CaptureSaving extends CaptureState {
+  const CaptureSaving(this.previous);
+
+  final CaptureReady previous;
+}
+
 final class CaptureFailure extends CaptureState {
   const CaptureFailure(this.previous, this.message);
 
