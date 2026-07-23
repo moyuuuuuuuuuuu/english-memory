@@ -6,7 +6,26 @@ import 'auth_api.dart';
 import 'session_store.dart';
 import 'session_token_provider.dart';
 
-final class AuthRepository implements SessionTokenProvider {
+abstract interface class AuthRepositoryGateway {
+  Future<AuthSession?> restore();
+
+  Future<AuthSession> login({
+    required String identity,
+    required String password,
+    required String deviceName,
+  });
+
+  Future<RegistrationResult> register({
+    String? email,
+    String? username,
+    required String password,
+  });
+
+  Future<void> logout();
+}
+
+final class AuthRepository
+    implements AuthRepositoryGateway, SessionTokenProvider {
   AuthRepository(
     this._api,
     this._store, {
@@ -25,6 +44,7 @@ final class AuthRepository implements SessionTokenProvider {
   @override
   SessionCredentials? get currentCredentials => _credentials;
 
+  @override
   Future<AuthSession?> restore() async {
     final stored = await _store.read();
     if (stored == null) {
@@ -48,6 +68,7 @@ final class AuthRepository implements SessionTokenProvider {
     }
   }
 
+  @override
   Future<AuthSession> login({
     required String identity,
     required String password,
@@ -63,6 +84,7 @@ final class AuthRepository implements SessionTokenProvider {
     return AuthSession(user: result.user, credentials: result.credentials);
   }
 
+  @override
   Future<RegistrationResult> register({
     String? email,
     String? username,
@@ -109,6 +131,7 @@ final class AuthRepository implements SessionTokenProvider {
     }
   }
 
+  @override
   Future<void> logout() async {
     try {
       final credentials = await _optionalCredentials();
