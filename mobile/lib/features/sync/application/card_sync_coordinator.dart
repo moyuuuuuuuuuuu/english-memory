@@ -4,6 +4,7 @@ import '../../../core/network/api_exception.dart';
 import '../data/card_outbox_repository.dart';
 import '../data/memory_card_api.dart';
 import 'retry_policy.dart';
+import 'sync_lifecycle.dart';
 
 abstract interface class SyncTimer {
   void cancel();
@@ -12,7 +13,7 @@ abstract interface class SyncTimer {
 typedef SyncTimerFactory =
     SyncTimer Function(Duration delay, void Function() callback);
 
-final class CardSyncCoordinator {
+final class CardSyncCoordinator implements SyncLifecycleGateway {
   CardSyncCoordinator(
     this._outbox,
     this._api, {
@@ -36,6 +37,7 @@ final class CardSyncCoordinator {
   var _disposed = false;
   SyncTimer? _retryTimer;
 
+  @override
   Future<void> activate(int accountId) async {
     if (_disposed) return;
     _retryTimer?.cancel();
@@ -47,6 +49,7 @@ final class CardSyncCoordinator {
     await drain();
   }
 
+  @override
   Future<void> drain() {
     if (_disposed || _accountId == null) return Future.value();
     final current = _drainInFlight;
@@ -129,6 +132,7 @@ final class CardSyncCoordinator {
     );
   }
 
+  @override
   Future<void> onResumed() => drain();
 
   Future<void> retryBlocked(String localId) async {
@@ -138,6 +142,7 @@ final class CardSyncCoordinator {
     await drain();
   }
 
+  @override
   void deactivate() {
     _retryTimer?.cancel();
     _retryTimer = null;

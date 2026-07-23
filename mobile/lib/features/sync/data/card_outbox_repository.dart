@@ -5,6 +5,7 @@ import '../../../core/database/local_app_database.dart';
 import '../../capture/domain/capture_draft.dart';
 import '../domain/card_creation_accepted.dart';
 import '../domain/pending_card_creation.dart';
+import '../application/sync_lifecycle.dart';
 
 abstract interface class CardOutboxGateway {
   Future<String> enqueue(int accountId, CaptureDraft draft);
@@ -40,7 +41,8 @@ abstract interface class CardOutboxGateway {
   Future<void> clearAccount(int accountId);
 }
 
-final class DriftCardOutboxRepository implements CardOutboxGateway {
+final class DriftCardOutboxRepository
+    implements CardOutboxGateway, AccountLocalDataGateway {
   DriftCardOutboxRepository(
     this._database, {
     String Function()? uuid,

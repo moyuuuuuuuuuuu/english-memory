@@ -1,15 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../sync/application/sync_lifecycle.dart';
 import '../data/auth_repository.dart';
 import 'session_state.dart';
 
 final class SessionController extends ChangeNotifier {
-  SessionController(this._repository);
+  SessionController(
+    this._repository, {
+    AccountLocalDataGateway? localData,
+    SyncLifecycleGateway? syncLifecycle,
+  }) : _localData = localData ?? const _NoopLocalData(),
+       _syncLifecycle = syncLifecycle ?? const _NoopSyncLifecycle();
 
   static const deviceName = 'english-memory-mobile';
 
   final AuthRepositoryGateway _repository;
+  final AccountLocalDataGateway _localData;
+  final SyncLifecycleGateway _syncLifecycle;
   SessionState _state = const SessionRestoring();
 
   SessionState get state => _state;
@@ -18,6 +28,9 @@ final class SessionController extends ChangeNotifier {
     _setState(const SessionRestoring());
     try {
       final session = await _repository.restore();
+      if (session != null) {
+        unawaited(_syncLifecycle.activate(session.user.id));
+      }
       _setState(
         session == null
             ? const SessionSignedOut()
@@ -48,6 +61,7 @@ final class SessionController extends ChangeNotifier {
         password: password,
         deviceName: deviceName,
       );
+      unawaited(_syncLifecycle.activate(session.user.id));
       _setState(SessionAuthenticated(session));
     } on ApiException catch (error) {
       _setState(
@@ -96,12 +110,56 @@ final class SessionController extends ChangeNotifier {
     } on ApiException {
       // Local sign-out remains authoritative when the remote call fails.
     } finally {
+      _syncLifecycle.deactivate();
       _setState(const SessionSignedOut());
     }
+  }
+
+  Future<void> confirmedLogout(int accountId) async {
+    final current = _state;
+    if (current is! SessionAuthenticated ||
+        current.session.user.id != accountId) {
+      return;
+    }
+    try {
+      await _localData.clearAccount(accountId);
+    } catch (_) {
+      _setState(
+        SessionAuthenticated(
+          current.session,
+          message: '无法清除本机数据，请重试。',
+        ),
+      );
+      return;
+    }
+    await logout();
   }
 
   void _setState(SessionState value) {
     _state = value;
     notifyListeners();
   }
+}
+
+final class _NoopLocalData implements AccountLocalDataGateway {
+  const _NoopLocalData();
+
+  @override
+  Future<void> clearAccount(int accountId) async {}
+}
+
+final class _NoopSyncLifecycle implements SyncLifecycleGateway {
+  const _NoopSyncLifecycle();
+
+  @override
+  Future<void> activate(int accountId) async {}
+
+  @override
+  void deactivate() {}
+
+  @override
+  Future<void> drain() async {}
+
+  @override
+  Future<void> onResumed() async {}
 }

@@ -126,6 +126,72 @@ void main() {
     expect(logoutCalls, 1);
   });
 
+  testWidgets('logout warns with pending count and supports cancel', (
+    tester,
+  ) async {
+    var logoutCalls = 0;
+    var cancelledCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MainShell(
+          user: const AuthenticatedUser(
+            id: 1,
+            email: 'learner@example.com',
+            username: null,
+            timezone: 'Asia/Shanghai',
+          ),
+          onLogout: () async => logoutCalls++,
+          onLogoutCancelled: () async => cancelledCalls++,
+          pendingCounts: Stream.value(3),
+          captureController: captureController,
+        ),
+      ),
+    );
+    await tester.tap(find.text(AppStrings.profile));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待同步 3'), findsOneWidget);
+    await tester.tap(find.text('退出登录'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('还有 3 条内容尚未同步'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(logoutCalls, 0);
+    expect(cancelledCalls, 1);
+
+    await tester.tap(find.text('退出登录'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除并退出'));
+    await tester.pumpAndSettle();
+    expect(logoutCalls, 1);
+  });
+
+  testWidgets('app resume triggers a queue drain', (tester) async {
+    var resumedCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MainShell(
+          user: const AuthenticatedUser(
+            id: 1,
+            email: 'learner@example.com',
+            username: null,
+            timezone: 'Asia/Shanghai',
+          ),
+          onLogout: _noopLogout,
+          onResumed: () async => resumedCalls++,
+          captureController: captureController,
+        ),
+      ),
+    );
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(resumedCalls, 1);
+  });
+
   testWidgets('keeps the Capture draft mounted across tab switches', (
     tester,
   ) async {
