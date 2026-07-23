@@ -4,7 +4,7 @@ part of 'local_app_database.dart';
 
 // ignore_for_file: type=lint
 class $PendingCardCreationsTable extends PendingCardCreations
-    with TableInfo<$PendingCardCreationsTable, PendingCardCreation> {
+    with TableInfo<$PendingCardCreationsTable, PendingCardCreationRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -154,7 +154,7 @@ class $PendingCardCreationsTable extends PendingCardCreations
   static const String $name = 'pending_card_creations';
   @override
   VerificationContext validateIntegrity(
-    Insertable<PendingCardCreation> instance, {
+    Insertable<PendingCardCreationRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -254,9 +254,9 @@ class $PendingCardCreationsTable extends PendingCardCreations
   @override
   Set<GeneratedColumn> get $primaryKey => {localId};
   @override
-  PendingCardCreation map(Map<String, dynamic> data, {String? tablePrefix}) {
+  PendingCardCreationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return PendingCardCreation(
+    return PendingCardCreationRow(
       localId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_id'],
@@ -315,8 +315,8 @@ class $PendingCardCreationsTable extends PendingCardCreations
       const PendingCreationStateConverter();
 }
 
-class PendingCardCreation extends DataClass
-    implements Insertable<PendingCardCreation> {
+class PendingCardCreationRow extends DataClass
+    implements Insertable<PendingCardCreationRow> {
   final String localId;
   final int accountId;
   final String requestText;
@@ -328,7 +328,7 @@ class PendingCardCreation extends DataClass
   final String? lastErrorCode;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const PendingCardCreation({
+  const PendingCardCreationRow({
     required this.localId,
     required this.accountId,
     required this.requestText,
@@ -386,12 +386,12 @@ class PendingCardCreation extends DataClass
     );
   }
 
-  factory PendingCardCreation.fromJson(
+  factory PendingCardCreationRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return PendingCardCreation(
+    return PendingCardCreationRow(
       localId: serializer.fromJson<String>(json['localId']),
       accountId: serializer.fromJson<int>(json['accountId']),
       requestText: serializer.fromJson<String>(json['requestText']),
@@ -423,7 +423,7 @@ class PendingCardCreation extends DataClass
     };
   }
 
-  PendingCardCreation copyWith({
+  PendingCardCreationRow copyWith({
     String? localId,
     int? accountId,
     String? requestText,
@@ -435,7 +435,7 @@ class PendingCardCreation extends DataClass
     Value<String?> lastErrorCode = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) => PendingCardCreation(
+  }) => PendingCardCreationRow(
     localId: localId ?? this.localId,
     accountId: accountId ?? this.accountId,
     requestText: requestText ?? this.requestText,
@@ -452,8 +452,8 @@ class PendingCardCreation extends DataClass
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
-  PendingCardCreation copyWithCompanion(PendingCardCreationsCompanion data) {
-    return PendingCardCreation(
+  PendingCardCreationRow copyWithCompanion(PendingCardCreationsCompanion data) {
+    return PendingCardCreationRow(
       localId: data.localId.present ? data.localId.value : this.localId,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       requestText: data.requestText.present
@@ -482,7 +482,7 @@ class PendingCardCreation extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('PendingCardCreation(')
+    return (StringBuffer('PendingCardCreationRow(')
           ..write('localId: $localId, ')
           ..write('accountId: $accountId, ')
           ..write('requestText: $requestText, ')
@@ -515,7 +515,7 @@ class PendingCardCreation extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is PendingCardCreation &&
+      (other is PendingCardCreationRow &&
           other.localId == this.localId &&
           other.accountId == this.accountId &&
           other.requestText == this.requestText &&
@@ -530,7 +530,7 @@ class PendingCardCreation extends DataClass
 }
 
 class PendingCardCreationsCompanion
-    extends UpdateCompanion<PendingCardCreation> {
+    extends UpdateCompanion<PendingCardCreationRow> {
   final Value<String> localId;
   final Value<int> accountId;
   final Value<String> requestText;
@@ -578,7 +578,7 @@ class PendingCardCreationsCompanion
        state = Value(state),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<PendingCardCreation> custom({
+  static Insertable<PendingCardCreationRow> custom({
     Expression<String>? localId,
     Expression<int>? accountId,
     Expression<String>? requestText,
@@ -703,7 +703,7 @@ class PendingCardCreationsCompanion
 }
 
 class $CachedCardsTable extends CachedCards
-    with TableInfo<$CachedCardsTable, CachedCard> {
+    with TableInfo<$CachedCardsTable, CachedCardRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -851,7 +851,7 @@ class $CachedCardsTable extends CachedCards
   static const String $name = 'cached_cards';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CachedCard> instance, {
+    Insertable<CachedCardRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -955,9 +955,9 @@ class $CachedCardsTable extends CachedCards
     {accountId, serverCardId},
   ];
   @override
-  CachedCard map(Map<String, dynamic> data, {String? tablePrefix}) {
+  CachedCardRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CachedCard(
+    return CachedCardRow(
       localId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}local_id'],
@@ -1016,7 +1016,7 @@ class $CachedCardsTable extends CachedCards
       const CachedCardLocalStatusConverter();
 }
 
-class CachedCard extends DataClass implements Insertable<CachedCard> {
+class CachedCardRow extends DataClass implements Insertable<CachedCardRow> {
   final String localId;
   final int accountId;
   final String sourceText;
@@ -1028,7 +1028,7 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
   final String? generationStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
-  const CachedCard({
+  const CachedCardRow({
     required this.localId,
     required this.accountId,
     required this.sourceText,
@@ -1090,12 +1090,12 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
     );
   }
 
-  factory CachedCard.fromJson(
+  factory CachedCardRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CachedCard(
+    return CachedCardRow(
       localId: serializer.fromJson<String>(json['localId']),
       accountId: serializer.fromJson<int>(json['accountId']),
       sourceText: serializer.fromJson<String>(json['sourceText']),
@@ -1129,7 +1129,7 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
     };
   }
 
-  CachedCard copyWith({
+  CachedCardRow copyWith({
     String? localId,
     int? accountId,
     String? sourceText,
@@ -1141,7 +1141,7 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
     Value<String?> generationStatus = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) => CachedCard(
+  }) => CachedCardRow(
     localId: localId ?? this.localId,
     accountId: accountId ?? this.accountId,
     sourceText: sourceText ?? this.sourceText,
@@ -1156,8 +1156,8 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
-  CachedCard copyWithCompanion(CachedCardsCompanion data) {
-    return CachedCard(
+  CachedCardRow copyWithCompanion(CachedCardsCompanion data) {
+    return CachedCardRow(
       localId: data.localId.present ? data.localId.value : this.localId,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       sourceText: data.sourceText.present
@@ -1188,7 +1188,7 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
 
   @override
   String toString() {
-    return (StringBuffer('CachedCard(')
+    return (StringBuffer('CachedCardRow(')
           ..write('localId: $localId, ')
           ..write('accountId: $accountId, ')
           ..write('sourceText: $sourceText, ')
@@ -1221,7 +1221,7 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CachedCard &&
+      (other is CachedCardRow &&
           other.localId == this.localId &&
           other.accountId == this.accountId &&
           other.sourceText == this.sourceText &&
@@ -1235,7 +1235,7 @@ class CachedCard extends DataClass implements Insertable<CachedCard> {
           other.updatedAt == this.updatedAt);
 }
 
-class CachedCardsCompanion extends UpdateCompanion<CachedCard> {
+class CachedCardsCompanion extends UpdateCompanion<CachedCardRow> {
   final Value<String> localId;
   final Value<int> accountId;
   final Value<String> sourceText;
@@ -1283,7 +1283,7 @@ class CachedCardsCompanion extends UpdateCompanion<CachedCard> {
        localStatus = Value(localStatus),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
-  static Insertable<CachedCard> custom({
+  static Insertable<CachedCardRow> custom({
     Expression<String>? localId,
     Expression<int>? accountId,
     Expression<String>? sourceText,
@@ -1909,21 +1909,21 @@ class $$PendingCardCreationsTableTableManager
         RootTableManager<
           _$LocalAppDatabase,
           $PendingCardCreationsTable,
-          PendingCardCreation,
+          PendingCardCreationRow,
           $$PendingCardCreationsTableFilterComposer,
           $$PendingCardCreationsTableOrderingComposer,
           $$PendingCardCreationsTableAnnotationComposer,
           $$PendingCardCreationsTableCreateCompanionBuilder,
           $$PendingCardCreationsTableUpdateCompanionBuilder,
           (
-            PendingCardCreation,
+            PendingCardCreationRow,
             BaseReferences<
               _$LocalAppDatabase,
               $PendingCardCreationsTable,
-              PendingCardCreation
+              PendingCardCreationRow
             >,
           ),
-          PendingCardCreation,
+          PendingCardCreationRow,
           PrefetchHooks Function()
         > {
   $$PendingCardCreationsTableTableManager(
@@ -2013,21 +2013,21 @@ typedef $$PendingCardCreationsTableProcessedTableManager =
     ProcessedTableManager<
       _$LocalAppDatabase,
       $PendingCardCreationsTable,
-      PendingCardCreation,
+      PendingCardCreationRow,
       $$PendingCardCreationsTableFilterComposer,
       $$PendingCardCreationsTableOrderingComposer,
       $$PendingCardCreationsTableAnnotationComposer,
       $$PendingCardCreationsTableCreateCompanionBuilder,
       $$PendingCardCreationsTableUpdateCompanionBuilder,
       (
-        PendingCardCreation,
+        PendingCardCreationRow,
         BaseReferences<
           _$LocalAppDatabase,
           $PendingCardCreationsTable,
-          PendingCardCreation
+          PendingCardCreationRow
         >,
       ),
-      PendingCardCreation,
+      PendingCardCreationRow,
       PrefetchHooks Function()
     >;
 typedef $$CachedCardsTableCreateCompanionBuilder =
@@ -2259,17 +2259,21 @@ class $$CachedCardsTableTableManager
         RootTableManager<
           _$LocalAppDatabase,
           $CachedCardsTable,
-          CachedCard,
+          CachedCardRow,
           $$CachedCardsTableFilterComposer,
           $$CachedCardsTableOrderingComposer,
           $$CachedCardsTableAnnotationComposer,
           $$CachedCardsTableCreateCompanionBuilder,
           $$CachedCardsTableUpdateCompanionBuilder,
           (
-            CachedCard,
-            BaseReferences<_$LocalAppDatabase, $CachedCardsTable, CachedCard>,
+            CachedCardRow,
+            BaseReferences<
+              _$LocalAppDatabase,
+              $CachedCardsTable,
+              CachedCardRow
+            >,
           ),
-          CachedCard,
+          CachedCardRow,
           PrefetchHooks Function()
         > {
   $$CachedCardsTableTableManager(_$LocalAppDatabase db, $CachedCardsTable table)
@@ -2351,17 +2355,17 @@ typedef $$CachedCardsTableProcessedTableManager =
     ProcessedTableManager<
       _$LocalAppDatabase,
       $CachedCardsTable,
-      CachedCard,
+      CachedCardRow,
       $$CachedCardsTableFilterComposer,
       $$CachedCardsTableOrderingComposer,
       $$CachedCardsTableAnnotationComposer,
       $$CachedCardsTableCreateCompanionBuilder,
       $$CachedCardsTableUpdateCompanionBuilder,
       (
-        CachedCard,
-        BaseReferences<_$LocalAppDatabase, $CachedCardsTable, CachedCard>,
+        CachedCardRow,
+        BaseReferences<_$LocalAppDatabase, $CachedCardsTable, CachedCardRow>,
       ),
-      CachedCard,
+      CachedCardRow,
       PrefetchHooks Function()
     >;
 typedef $$SyncStatesTableCreateCompanionBuilder =

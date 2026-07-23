@@ -13,18 +13,12 @@ void main() {
 
   test('creates the local card outbox schema', () async {
     final tables = await database
-        .customSelect(
-          "SELECT name FROM sqlite_master WHERE type = 'table'",
-        )
+        .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
         .get();
 
     expect(
       tables.map((row) => row.read<String>('name')),
-      containsAll([
-        'pending_card_creations',
-        'cached_cards',
-        'sync_states',
-      ]),
+      containsAll(['pending_card_creations', 'cached_cards', 'sync_states']),
     );
 
     final columns = await database

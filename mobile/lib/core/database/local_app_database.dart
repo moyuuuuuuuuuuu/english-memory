@@ -53,14 +53,14 @@ final class CachedCardLocalStatusConverter
   name: 'pending_card_creations_ready',
   columns: {#accountId, #state, #nextAttemptAt, #createdAt},
 )
+@DataClassName('PendingCardCreationRow')
 class PendingCardCreations extends Table {
   TextColumn get localId => text()();
   IntColumn get accountId => integer()();
   TextColumn get requestText => text().named('text')();
   TextColumn get contentType => text()();
   TextColumn get memoryStyle => text()();
-  TextColumn get state =>
-      text().map(const PendingCreationStateConverter())();
+  TextColumn get state => text().map(const PendingCreationStateConverter())();
   IntColumn get attemptCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get nextAttemptAt => dateTime().nullable()();
   TextColumn get lastErrorCode => text().nullable()();
@@ -71,10 +71,8 @@ class PendingCardCreations extends Table {
   Set<Column<Object>> get primaryKey => {localId};
 }
 
-@TableIndex(
-  name: 'cached_cards_by_status',
-  columns: {#accountId, #localStatus},
-)
+@TableIndex(name: 'cached_cards_by_status', columns: {#accountId, #localStatus})
+@DataClassName('CachedCardRow')
 class CachedCards extends Table {
   TextColumn get localId => text()();
   IntColumn get accountId => integer()();
@@ -107,12 +105,9 @@ class SyncStates extends Table {
   Set<Column<Object>> get primaryKey => {accountId};
 }
 
-@DriftDatabase(
-  tables: [PendingCardCreations, CachedCards, SyncStates],
-)
+@DriftDatabase(tables: [PendingCardCreations, CachedCards, SyncStates])
 final class LocalAppDatabase extends _$LocalAppDatabase {
-  LocalAppDatabase.defaults()
-    : super(driftDatabase(name: 'english_memory'));
+  LocalAppDatabase.defaults() : super(driftDatabase(name: 'english_memory'));
 
   LocalAppDatabase.forTesting(super.executor);
 
@@ -120,7 +115,6 @@ final class LocalAppDatabase extends _$LocalAppDatabase {
   int get schemaVersion => 1;
 
   @override
-  MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (migrator) => migrator.createAll(),
-  );
+  MigrationStrategy get migration =>
+      MigrationStrategy(onCreate: (migrator) => migrator.createAll());
 }
